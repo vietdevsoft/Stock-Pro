@@ -212,26 +212,32 @@
             </div>
           </section>
 
-          <section id="categories" class="row g-4">
+          <section id="categories" class="row g-4 align-items-stretch category-area">
             <div class="col-lg-5">
-              <div class="card">
+              <div class="card category-form-card">
                 <div id="categoryFormTitle" class="card-header bg-white fw-semibold">
                   Thêm danh mục
                 </div>
 
                 <div class="card-body">
+                  <p class="section-note mb-3">
+                    Tạo nhóm hàng để phân loại sản phẩm trong kho.
+                  </p>
+
                   <form id="categoryForm">
+                    <label class="form-label" for="categoryName">Tên nhóm hàng</label>
                     <input
                       id="categoryName"
                       class="form-control mb-1"
-                      placeholder="Tên nhóm hàng"
+                      placeholder="Ví dụ: Thiết bị văn phòng"
                     >
                     <div id="categoryNameError" class="error-text mb-2"></div>
 
+                    <label class="form-label" for="categoryDescription">Mô tả</label>
                     <input
                       id="categoryDescription"
                       class="form-control mb-3"
-                      placeholder="Mô tả"
+                      placeholder="Ví dụ: Bàn phím, chuột, màn hình"
                     >
 
                     <button id="categorySubmitBtn" class="btn btn-primary">
@@ -243,9 +249,21 @@
             </div>
 
             <div class="col-lg-7">
-              <div class="card">
-                <div class="card-header bg-white fw-semibold">Danh mục hiện có</div>
-                <ul id="categoryList" class="list-group list-group-flush"></ul>
+              <div class="card category-list-card">
+                <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+                  <span>Danh mục hiện có</span>
+                  <span class="badge text-bg-light">Cuộn để xem thêm</span>
+                </div>
+
+                <div class="card-body">
+                  <p class="section-note mb-3">
+                    Danh sách nhóm hàng đang được dùng cho sản phẩm.
+                  </p>
+
+                  <div class="category-scroll-panel">
+                    <ul id="categoryList" class="list-group list-group-flush category-list-clean"></ul>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
