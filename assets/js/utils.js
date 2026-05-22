@@ -1,6 +1,9 @@
 // =============================
 // FILE: utils.js
 // Mục đích: Chứa các hàm tiện ích dùng chung ở nhiều trang.
+// Ghi chú quan trọng:
+// - API hiện tại có Products/Categories thiếu id.
+// - Vì vậy frontend tạo thêm _selectId, _legacyId, _categoryId để dùng nội bộ.
 // =============================
 
 function qs(id) {
@@ -39,7 +42,6 @@ function showError(message) {
 function showToast(message, type = 'success') {
   const toastBox = qs('toastBox');
 
-  // Nếu trang không có vùng hiển thị toast thì dùng alert cho đơn giản.
   if (!toastBox) {
     alert(message);
     return;
@@ -61,24 +63,158 @@ function showToast(message, type = 'success') {
   toast.show();
 }
 
-function getCategoryName(categories, categoryId) {
-  const category = categories.find(function (item) {
-    return String(item.id) === String(categoryId);
-  });
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
 
-  return category ? category.name : 'Chưa phân loại';
+function normalizeCategories(rawCategories) {
+  const result = [];
+
+  for (let i = 0; i < rawCategories.length; i++) {
+    const category = rawCategories[i];
+
+    result.push({
+      ...category,
+
+      // Nếu API không có id thì lấy số thứ tự 1, 2, 3...
+      // Nhờ đó product.categoryId = 1 vẫn map được với danh mục đầu tiên.
+      _categoryId: hasValue(category.id) ? String(category.id) : String(i + 1),
+      _canDeleteRemote: hasValue(category.id)
+    });
+  }
+
+  return result;
+}
+
+function normalizeProducts(rawProducts) {
+  const result = [];
+
+  for (let i = 0; i < rawProducts.length; i++) {
+    const product = rawProducts[i];
+
+    result.push({
+      ...product,
+
+      // _selectId chỉ dùng cho <select>, không gửi lên API.
+      _selectId: String(i),
+
+      // _legacyId dùng để khớp với transaction cũ.
+      // Vì Transactions hiện đang lưu productId = 1, 2, 3...
+      _legacyId: String(i + 1),
+
+      // _apiId dùng khi record có id thật để PUT/DELETE.
+      _apiId: hasValue(product.id) ? String(product.id) : ''
+    });
+  }
+
+  return result;
+}
+
+function getCategoryName(categories, categoryId) {
+  for (let i = 0; i < categories.length; i++) {
+    const category = categories[i];
+
+    if (String(category._categoryId) === String(categoryId)) {
+      return category.name;
+    }
+
+    if (hasValue(category.id) && String(category.id) === String(categoryId)) {
+      return category.name;
+    }
+  }
+
+  return 'Chưa phân loại';
+}
+
+function getProductImage(product) {
+  if (product.image) {
+    return product.image;
+  }
+
+  if (product.imageUrl) {
+    return product.imageUrl;
+  }
+
+  return PLACEHOLDER_IMG;
+}
+
+function getProductStockKey(product) {
+  // Sản phẩm cũ trong API không có id, nên dùng số thứ tự legacy 1,2,3...
+  // Sản phẩm mới có id thật, nhưng có thể trùng với legacy id.
+  // Vì vậy ta thêm tiền tố p- để tránh nhầm với transaction cũ.
+  if (product._apiId) {
+    return 'p-' + product._apiId;
+  }
+
+  return product._legacyId;
+}
+
+function isSameProductTransaction(product, transaction) {
+  const transactionProductId = String(transaction.productId);
+
+  if (transactionProductId === getProductStockKey(product)) {
+    return true;
+  }
+
+  // Transaction cũ đang lưu productId = 1, 2, 3...
+  // Chỉ cho sản phẩm thiếu id thật dùng cách match legacy này.
+  if (!product._apiId && transactionProductId === String(product._legacyId)) {
+    return true;
+  }
+
+  return false;
+}
+
+function calculateCurrentStock(product, transactions) {
+  let currentQuantity = Number(product.quantity || 0);
+
+  for (let i = 0; i < transactions.length; i++) {
+    const transaction = transactions[i];
+
+    if (!isSameProductTransaction(product, transaction)) {
+      continue;
+    }
+
+    const quantity = Number(transaction.quantity || 0);
+
+    if (transaction.type === 'import') {
+      currentQuantity += quantity;
+    }
+
+    if (transaction.type === 'export') {
+      currentQuantity -= quantity;
+    }
+  }
+
+  return currentQuantity;
+}
+
+function getDisplayQuantity(product) {
+  if (hasValue(product.currentQuantity)) {
+    return Number(product.currentQuantity);
+  }
+
+  return Number(product.quantity || 0);
 }
 
 function getProductNameById(products, productId) {
-  const product = products.find(function (item) {
-    return String(item.id) === String(productId);
-  });
+  for (let i = 0; i < products.length; i++) {
+    const product = products[i];
 
-  return product ? product.name : productId;
+    if (String(productId) === getProductStockKey(product)) {
+      return product.name;
+    }
+
+    if (!product._apiId && String(productId) === String(product._legacyId)) {
+      return product.name;
+    }
+  }
+
+  return productId;
 }
 
 function isLowStock(product) {
-  const quantity = Number(product.quantity || 0);
+  const quantity = getDisplayQuantity(product);
   const minStock = Number(product.minStock || 0);
 
   return quantity <= minStock;
@@ -89,11 +225,26 @@ function calcInventoryValue(products) {
 
   for (let i = 0; i < products.length; i++) {
     const product = products[i];
-    const quantity = Number(product.quantity || 0);
+    const quantity = getDisplayQuantity(product);
     const price = Number(product.price || 0);
 
     total += quantity * price;
   }
 
   return total;
+}
+
+function applyCurrentStockToProducts(products, transactions) {
+  const result = [];
+
+  for (let i = 0; i < products.length; i++) {
+    const product = products[i];
+
+    result.push({
+      ...product,
+      currentQuantity: calculateCurrentStock(product, transactions)
+    });
+  }
+
+  return result;
 }

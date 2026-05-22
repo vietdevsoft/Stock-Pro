@@ -12,8 +12,8 @@ async function loadHistoryPage() {
   try {
     const data = await loadAllStockData();
 
-    historyProducts = data.products;
     historyTransactions = data.transactions;
+    historyProducts = applyCurrentStockToProducts(data.products, historyTransactions);
 
     renderFullHistoryTable();
   } catch (error) {
@@ -65,16 +65,6 @@ function createHistoryRow(transaction) {
   `;
 }
 
-function renderEmptyHistoryRow(tableBody) {
-  tableBody.innerHTML = `
-    <tr>
-      <td colspan="5" class="text-center text-muted py-4">
-        Chưa có giao dịch.
-      </td>
-    </tr>
-  `;
-}
-
 function renderFullHistoryTable() {
   const tableBody = qs('historyTableBody');
 
@@ -85,7 +75,13 @@ function renderFullHistoryTable() {
   const sortedTransactions = getSortedTransactions();
 
   if (sortedTransactions.length === 0) {
-    renderEmptyHistoryRow(tableBody);
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="text-center text-muted py-4">
+          Chưa có giao dịch.
+        </td>
+      </tr>
+    `;
     return;
   }
 
@@ -99,7 +95,6 @@ function renderFullHistoryTable() {
 }
 
 $(document).ready(function () {
-  // Nếu không ở trang history.html thì không chạy file này.
   if (!qs('historyTableBody')) {
     return;
   }

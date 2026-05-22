@@ -1,24 +1,26 @@
 // =============================
 // FILE: admin.js
 // Mục đích: Xử lý trang quản trị kho hàng.
+// Cách xử lý mới:
+// - API Products/Categories hiện thiếu id ở nhiều dòng.
+// - Nhập/xuất kho sẽ ghi vào Transactions, sau đó tính tồn kho hiện tại từ Products + Transactions.
+// - Không bắt buộc PUT Products nữa, vì record thiếu id không thể cập nhật bằng /Products/:id.
 // =============================
 
 let products = [];
 let categories = [];
 let transactions = [];
-let editingProductId = null;
+let editingProductSelectId = null;
 
 async function loadAdminData() {
   showLoading(true);
 
   try {
-    const loadedProducts = await apiGet(API.products);
-    const loadedCategories = await apiGet(API.categories);
-    const loadedTransactions = await apiGet(API.transactions);
+    const data = await loadAllStockData();
 
-    products = loadedProducts;
-    categories = loadedCategories;
-    transactions = loadedTransactions;
+    categories = data.categories;
+    transactions = data.transactions;
+    products = applyCurrentStockToProducts(data.products, transactions);
 
     renderAdminPage();
   } catch (error) {
@@ -34,6 +36,7 @@ function renderAdminPage() {
   renderProductSelect();
   renderAdminProducts();
   renderCategoryList();
+  renderLowStockAlerts();
   renderAdminTransactions();
   fillCategoryOptions();
 }
@@ -49,8 +52,8 @@ function renderAdminStats() {
 
 function createProductOption(product) {
   return `
-    <option value="${product.id}">
-      ${product.code} - ${product.name} (${product.quantity} ${product.unit || ''})
+    <option value="${product._selectId}">
+      ${product.code} - ${product.name} (${getDisplayQuantity(product)} ${product.unit || ''})
     </option>
   `;
 }
@@ -62,7 +65,7 @@ function renderProductSelect() {
     html += createProductOption(products[i]);
   }
 
-  $('#stockProductId, #exportProductId').html(html);
+  $('#importProductId, #exportProductId').html(html);
 }
 
 function createProductStatusBadge(product) {
@@ -77,19 +80,23 @@ function createAdminProductRow(product) {
   const rowClass = isLowStock(product) ? 'low-stock' : '';
   const categoryName = getCategoryName(categories, product.categoryId);
   const statusBadge = createProductStatusBadge(product);
+  const image = getProductImage(product);
 
   return `
     <tr class="${rowClass}">
-      <td>${product.code}</td>
+      <td>
+        <img class="product-img" src="${image}" onerror="this.src='${PLACEHOLDER_IMG}'">
+        <div class="small fw-semibold mt-1">${product.code}</div>
+      </td>
       <td>${product.name}</td>
       <td>${categoryName}</td>
-      <td>${product.quantity}</td>
+      <td>${getDisplayQuantity(product)}</td>
       <td>${money(product.price)}</td>
       <td>${product.minStock}</td>
       <td>${statusBadge}</td>
       <td>
-        <button class="btn btn-sm btn-outline-primary edit-product" data-id="${product.id}">Sửa</button>
-        <button class="btn btn-sm btn-outline-danger delete-product" data-id="${product.id}">Xóa</button>
+        <button class="btn btn-sm btn-outline-primary edit-product" data-id="${product._selectId}">Sửa</button>
+        <button class="btn btn-sm btn-outline-danger delete-product" data-id="${product._selectId}">Xóa</button>
       </td>
     </tr>
   `;
@@ -116,11 +123,44 @@ function renderAdminProducts() {
   tableBody.innerHTML = html;
 }
 
+function countProductsByCategoryId(categoryId) {
+  let count = 0;
+
+  for (let i = 0; i < products.length; i++) {
+    if (String(products[i].categoryId) === String(categoryId)) {
+      count++;
+    }
+  }
+
+  return count;
+}
+
 function createCategoryItem(category) {
+  const productCount = countProductsByCategoryId(category._categoryId);
+  const description = category.description || 'Không có mô tả';
+
+  let deleteButton = '';
+
+  if (category._canDeleteRemote) {
+    deleteButton = `
+      <button type="button" class="btn btn-sm btn-outline-danger delete-category" data-id="${category.id}">
+        Xóa
+      </button>
+    `;
+  } else {
+    deleteButton = '<span class="badge text-bg-light">Xóa</span>';
+  }
+
   return `
-    <li class="list-group-item d-flex justify-content-between">
-      <span>${category.name}</span>
-      <span class="text-muted small">${category.description || ''}</span>
+    <li class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <div class="fw-semibold">${category.name}</div>
+          <div class="text-muted small">${description}</div>
+          <div class="text-muted small">${productCount} hàng hóa đang dùng danh mục này</div>
+        </div>
+        ${deleteButton}
+      </div>
     </li>
   `;
 }
@@ -146,24 +186,20 @@ function renderCategoryList() {
   categoryList.html(html);
 }
 
-function getAdminTransactionTypeLabel(type) {
-  return type === 'import' ? 'Nhập kho' : 'Xuất kho';
-}
+function getAdminTransactionBadge(type) {
+  if (type === 'import') {
+    return '<span class="badge text-bg-success">Nhập kho</span>';
+  }
 
-function getTransactionProductName(productId) {
-  const product = products.find(function (item) {
-    return String(item.id) === String(productId);
-  });
-
-  return product ? product.name : productId;
+  return '<span class="badge text-bg-danger">Xuất kho</span>';
 }
 
 function createAdminTransactionRow(transaction) {
   return `
     <tr>
       <td>${dateTime(transaction.createdAt)}</td>
-      <td>${getTransactionProductName(transaction.productId)}</td>
-      <td>${getAdminTransactionTypeLabel(transaction.type)}</td>
+      <td>${getProductNameById(products, transaction.productId)}</td>
+      <td>${getAdminTransactionBadge(transaction.type)}</td>
       <td>${transaction.quantity}</td>
       <td>${transaction.note || ''}</td>
     </tr>
@@ -193,22 +229,60 @@ function renderAdminTransactions() {
   tableBody.html(html);
 }
 
+function renderLowStockAlerts() {
+  const alertList = $('#lowStockAlertList');
+
+  if (!alertList.length) {
+    return;
+  }
+
+  const lowStockProducts = products.filter(isLowStock);
+
+  if (lowStockProducts.length === 0) {
+    alertList.html('<div class="list-group-item text-muted">Không có hàng tồn thấp</div>');
+    return;
+  }
+
+  let html = '';
+
+  for (let i = 0; i < lowStockProducts.length; i++) {
+    const product = lowStockProducts[i];
+
+    html += `
+      <div class="list-group-item d-flex justify-content-between">
+        <span>${product.code} - ${product.name}</span>
+        <span class="badge text-bg-warning">Tồn: ${getDisplayQuantity(product)}</span>
+      </div>
+    `;
+  }
+
+  alertList.html(html);
+}
+
+function getProductFormValue(form, fieldName) {
+  const field = form.querySelector(`[name="${fieldName}"]`);
+  return field ? field.value : '';
+}
+
 function createProductPayload(form) {
+  const imageUrl = getProductFormValue(form, 'image').trim() || PLACEHOLDER_IMG;
+  const categoryId = getProductFormValue(form, 'categoryId');
+
   return {
-    code: form.code.value.trim(),
-    name: form.name.value.trim(),
-    categoryId: Number(form.categoryId.value),
-    quantity: Number(form.quantity.value),
-    unit: form.unit.value.trim(),
-    price: Number(form.price.value),
-    minStock: Number(form.minStock.value),
-    description: form.description.value.trim(),
-    image: form.image.value.trim() || PLACEHOLDER_IMG,
+    code: getProductFormValue(form, 'code').trim(),
+    name: getProductFormValue(form, 'name').trim(),
+    categoryId: Number(categoryId),
+    quantity: Number(getProductFormValue(form, 'quantity')),
+    unit: getProductFormValue(form, 'unit').trim(),
+    price: Number(getProductFormValue(form, 'price')),
+    minStock: Number(getProductFormValue(form, 'minStock')),
+    description: getProductFormValue(form, 'description').trim(),
+    image: imageUrl,
+    imageUrl: imageUrl,
     createdAt: new Date().toISOString()
   };
 }
 
-// Giữ lại tên cũ để không ảnh hưởng nếu HTML hoặc file khác đang gọi productPayload().
 function productPayload(form) {
   return createProductPayload(form);
 }
@@ -218,14 +292,14 @@ function fillCategoryOptions() {
 
   for (let i = 0; i < categories.length; i++) {
     const category = categories[i];
-    html += `<option value="${category.id}">${category.name}</option>`;
+    html += `<option value="${category._categoryId}">${category.name}</option>`;
   }
 
   $('#categoryId').html(html);
 }
 
 function resetProductForm() {
-  editingProductId = null;
+  editingProductSelectId = null;
 
   const form = qs('productForm');
 
@@ -233,6 +307,7 @@ function resetProductForm() {
     form.reset();
   }
 
+  $('#productFormTitle').text('Thêm hàng hóa mới');
   fillCategoryOptions();
 }
 
@@ -244,6 +319,30 @@ function hideProductForm() {
   $('#productFormBox').fadeOut();
 }
 
+function findProductBySelectId(selectId) {
+  return products.find(function (product) {
+    return String(product._selectId) === String(selectId);
+  });
+}
+
+function fillProductForm(product) {
+  const form = qs('productForm');
+
+  if (!form) {
+    return;
+  }
+
+  form.code.value = product.code || '';
+  form.name.value = product.name || '';
+  form.categoryId.value = String(product.categoryId || '');
+  form.quantity.value = product.quantity || 0;
+  form.unit.value = product.unit || '';
+  form.price.value = product.price || 0;
+  form.minStock.value = product.minStock || 0;
+  form.description.value = product.description || '';
+  form.image.value = getProductImage(product);
+}
+
 async function saveProduct(event) {
   event.preventDefault();
 
@@ -253,14 +352,32 @@ async function saveProduct(event) {
     return;
   }
 
-  const data = createProductPayload(form);
+  const formData = createProductPayload(form);
 
   try {
-    if (editingProductId) {
-      await apiPut(`${API.products}/${editingProductId}`, data);
+    if (editingProductSelectId !== null) {
+      const oldProduct = findProductBySelectId(editingProductSelectId);
+
+      if (!oldProduct || !oldProduct._apiId) {
+        showError('Sản phẩm này không có id API nên không thể sửa trực tiếp. Hãy thêm lại sản phẩm mới để có id.');
+        return;
+      }
+
+      const updatedProduct = {
+        ...oldProduct,
+        ...formData,
+        createdAt: oldProduct.createdAt || formData.createdAt
+      };
+
+      delete updatedProduct._selectId;
+      delete updatedProduct._legacyId;
+      delete updatedProduct._apiId;
+      delete updatedProduct.currentQuantity;
+
+      await apiPut(`${API.products}/${oldProduct._apiId}`, updatedProduct);
       showToast('Đã cập nhật hàng hóa.');
     } else {
-      await apiPost(API.products, data);
+      await apiPost(API.products, formData);
       showToast('Đã thêm hàng hóa.');
     }
 
@@ -273,45 +390,34 @@ async function saveProduct(event) {
   }
 }
 
-function findProductById(id) {
-  return products.find(function (product) {
-    return String(product.id) === String(id);
-  });
-}
-
-function fillProductForm(product) {
-  const form = qs('productForm');
-
-  if (!form) {
-    return;
-  }
-
-  form.code.value = product.code;
-  form.name.value = product.name;
-  form.categoryId.value = product.categoryId;
-  form.quantity.value = product.quantity;
-  form.unit.value = product.unit;
-  form.price.value = product.price;
-  form.minStock.value = product.minStock;
-  form.description.value = product.description || '';
-  form.image.value = product.image || '';
-}
-
-function startEditProduct(id) {
-  const product = findProductById(id);
+function startEditProduct(selectId) {
+  const product = findProductBySelectId(selectId);
 
   if (!product) {
     showError('Không tìm thấy hàng hóa cần sửa.');
     return;
   }
 
-  editingProductId = product.id;
+  editingProductSelectId = String(selectId);
   fillCategoryOptions();
   fillProductForm(product);
+  $('#productFormTitle').text('Cập nhật hàng hóa');
   showProductForm();
 }
 
-async function deleteProduct(id) {
+async function deleteProduct(selectId) {
+  const product = findProductBySelectId(selectId);
+
+  if (!product) {
+    showError('Không tìm thấy hàng hóa cần xóa.');
+    return;
+  }
+
+  if (!product._apiId) {
+    showError('Sản phẩm này không có id API nên không thể xóa trực tiếp trên MockAPI.');
+    return;
+  }
+
   const accepted = confirm('Xóa hàng hóa này?');
 
   if (!accepted) {
@@ -319,7 +425,7 @@ async function deleteProduct(id) {
   }
 
   try {
-    await apiDelete(`${API.products}/${id}`);
+    await apiDelete(`${API.products}/${product._apiId}`);
     showToast('Đã xóa hàng hóa.');
     await loadAdminData();
   } catch (error) {
@@ -328,30 +434,20 @@ async function deleteProduct(id) {
   }
 }
 
-function calculateNewQuantity(product, quantity, type) {
-  const currentQuantity = Number(product.quantity || 0);
-
-  if (type === 'import') {
-    return currentQuantity + quantity;
-  }
-
-  return currentQuantity - quantity;
-}
-
-function validateExportQuantity(product, quantity) {
-  const currentQuantity = Number(product.quantity || 0);
+function validateExportQuantity(form, product, quantity) {
+  const currentQuantity = getDisplayQuantity(product);
 
   if (quantity > currentQuantity) {
-    setFieldError('stockQuantity', 'Không được xuất quá số lượng tồn.');
+    setStockQuantityError(form, 'Không được xuất quá số lượng tồn.');
     return false;
   }
 
   return true;
 }
 
-function createTransactionPayload(productId, type, quantity, note) {
+function createTransactionPayload(product, type, quantity, note) {
   return {
-    productId: Number(productId),
+    productId: getProductStockKey(product),
     type: type,
     quantity: quantity,
     note: note,
@@ -368,29 +464,24 @@ async function submitStock(event, type) {
     return;
   }
 
-  const product = findProductById(form.productId.value);
+  const productSelectId = getFormValue(form, 'productId');
+  const product = findProductBySelectId(productSelectId);
 
   if (!product) {
     showError('Không tìm thấy hàng hóa.');
     return;
   }
 
-  const quantity = Number(form.quantity.value);
+  const quantity = Number(getFormValue(form, 'quantity'));
+  const note = getFormValue(form, 'note').trim();
 
-  if (type === 'export' && !validateExportQuantity(product, quantity)) {
+  if (type === 'export' && !validateExportQuantity(form, product, quantity)) {
     return;
   }
 
-  const newQuantity = calculateNewQuantity(product, quantity, type);
-  const note = form.note.value.trim();
-  const transaction = createTransactionPayload(product.id, type, quantity, note);
+  const transaction = createTransactionPayload(product, type, quantity, note);
 
   try {
-    await apiPut(`${API.products}/${product.id}`, {
-      ...product,
-      quantity: newQuantity
-    });
-
     await apiPost(API.transactions, transaction);
 
     if (type === 'import') {
@@ -403,7 +494,7 @@ async function submitStock(event, type) {
     await loadAdminData();
   } catch (error) {
     console.error('Lỗi xử lý kho:', error);
-    showError('Xử lý kho thất bại.');
+    showError('Xử lý kho thất bại: không ghi được lịch sử giao dịch.');
   }
 }
 
@@ -415,13 +506,14 @@ function getCategoryFormData() {
 }
 
 function validateCategoryName(name) {
+  setFieldError('categoryName', '');
+
   if (name) {
     return true;
   }
 
-  $('#categoryName')
-    .attr('placeholder', 'Tên nhóm hàng bắt buộc')
-    .focus();
+  setFieldError('categoryName', 'Tên danh mục không được để trống.');
+  $('#categoryName').focus();
 
   return false;
 }
@@ -436,7 +528,6 @@ async function addCategory(event) {
   }
 
   try {
-    // Yêu cầu bài: dùng jQuery AJAX ít nhất một API.
     await $.post(API.categories, data);
 
     $('#categoryForm')[0].reset();
@@ -448,13 +539,43 @@ async function addCategory(event) {
   }
 }
 
+function findCategoryByApiId(id) {
+  return categories.find(function (category) {
+    return String(category.id) === String(id);
+  });
+}
+
+async function deleteCategory(id) {
+  const category = findCategoryByApiId(id);
+
+  if (!category) {
+    showError('Danh mục này không có id API nên không thể xóa trực tiếp.');
+    return;
+  }
+
+  const accepted = confirm(`Xóa danh mục "${category.name}"?`);
+
+  if (!accepted) {
+    return;
+  }
+
+  try {
+    await apiDelete(`${API.categories}/${id}`);
+    showToast('Đã xóa danh mục.');
+    await loadAdminData();
+  } catch (error) {
+    console.error('Lỗi xóa danh mục:', error);
+    showError('Xóa danh mục thất bại.');
+  }
+}
+
 function registerAdminEvents() {
-  $('#showProductForm').on('click', function () {
+  $('#showProductFormBtn').on('click', function () {
     resetProductForm();
     showProductForm();
   });
 
-  $('#hideProductForm').on('click', function () {
+  $('#cancelProductFormBtn').on('click', function () {
     hideProductForm();
   });
 
@@ -471,18 +592,22 @@ function registerAdminEvents() {
   $('#categoryForm').on('submit', addCategory);
 
   $(document).on('click', '.edit-product', function () {
-    const productId = $(this).attr('data-id');
-    startEditProduct(productId);
+    const productSelectId = $(this).attr('data-id');
+    startEditProduct(productSelectId);
   });
 
   $(document).on('click', '.delete-product', function () {
-    const productId = $(this).attr('data-id');
-    deleteProduct(productId);
+    const productSelectId = $(this).attr('data-id');
+    deleteProduct(productSelectId);
+  });
+
+  $(document).on('click', '.delete-category', function () {
+    const categoryId = $(this).attr('data-id');
+    deleteCategory(categoryId);
   });
 }
 
 $(document).ready(function () {
-  // Nếu không ở trang admin thì không chạy file này.
   if (!qs('adminProductBody')) {
     return;
   }
