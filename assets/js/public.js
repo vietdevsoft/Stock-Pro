@@ -1,40 +1,40 @@
 // =============================
 // FILE: public.js
-// Mục đích: Xử lý trang Public gồm:
-// - Xem tồn kho
-// - Tìm kiếm mặt hàng
-// - Lọc theo nhóm hàng
-// - Xem nhanh lịch sử nhập/xuất
+// Mục đích: Xử lý trang xem tồn kho cho người dùng thường.
 // =============================
 
 let publicProducts = [];
 let publicCategories = [];
 let publicTransactions = [];
 
-async function loadPublicPage() {
+async function loadPublicData() {
   showLoading(true);
 
   try {
-    const data = await loadAllStockData();
+    // Lấy sản phẩm và lịch sử giao dịch bằng fetch API.
+    const products = await apiGet(API.products);
+    const transactions = await apiGet(API.transactions);
 
-    publicProducts = data.products;
-    publicCategories = data.categories;
-    publicTransactions = data.transactions;
+    publicProducts = products;
+    publicTransactions = transactions;
+
+    // Yêu cầu bài: dùng jQuery AJAX ít nhất một API.
+    publicCategories = await $.get(API.categories);
 
     renderCategoryFilter();
-    renderProductTable();
-    renderTransactionTable();
-    renderPublicStatistic();
+    renderPublicProducts();
+    renderPublicTransactions();
+    renderPublicStats();
   } catch (error) {
-    console.error(error);
-    showError('Không tải được dữ liệu tồn kho từ MockAPI.');
+    console.error('Lỗi tải dữ liệu public:', error);
+    showError('Không tải được dữ liệu tồn kho.');
   } finally {
     showLoading(false);
   }
 }
 
 function renderCategoryFilter() {
-  const select = getElement('filterCategory');
+  const select = qs('filterCategory');
 
   if (!select) {
     return;
@@ -43,191 +43,188 @@ function renderCategoryFilter() {
   let html = '<option value="">Tất cả nhóm hàng</option>';
 
   for (let i = 0; i < publicCategories.length; i++) {
-    html = html + `
-      <option value="${publicCategories[i].id}">
-        ${publicCategories[i].name}
-      </option>
-    `;
+    const category = publicCategories[i];
+    html += `<option value="${category.id}">${category.name}</option>`;
   }
 
   select.innerHTML = html;
 }
 
-function getFilteredProducts() {
-  const searchInput = getElement('searchInput');
-  const categorySelect = getElement('filterCategory');
+function getSearchKeyword() {
+  const input = qs('searchInput');
+  return input ? input.value.trim().toLowerCase() : '';
+}
 
-  const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
-  const categoryId = categorySelect ? categorySelect.value : '';
+function getSelectedCategoryId() {
+  const select = qs('filterCategory');
+  return select ? select.value : '';
+}
 
-  const filteredProducts = [];
+function isProductMatched(product, keyword, categoryId) {
+  const productName = String(product.name || '').toLowerCase();
+  const productCode = String(product.code || '').toLowerCase();
+
+  const matchKeyword = productName.includes(keyword) || productCode.includes(keyword);
+  const matchCategory = categoryId === '' || String(product.categoryId) === String(categoryId);
+
+  return matchKeyword && matchCategory;
+}
+
+function filterProducts() {
+  const keyword = getSearchKeyword();
+  const categoryId = getSelectedCategoryId();
+  const result = [];
 
   for (let i = 0; i < publicProducts.length; i++) {
     const product = publicProducts[i];
 
-    const productText = (
-      product.code + ' ' + product.name + ' ' + (product.description || '')
-    ).toLowerCase();
-
-    const isMatchKeyword = keyword === '' || productText.includes(keyword);
-    const isMatchCategory = categoryId === '' || String(product.categoryId) === String(categoryId);
-
-    if (isMatchKeyword && isMatchCategory) {
-      filteredProducts.push(product);
+    if (isProductMatched(product, keyword, categoryId)) {
+      result.push(product);
     }
   }
 
-  return filteredProducts;
+  return result;
 }
 
-function renderProductTable() {
-  const tableBody = getElement('productTableBody');
+function createLowStockBadge(product) {
+  if (!isLowStock(product)) {
+    return '';
+  }
+
+  return '<span class="badge text-bg-warning ms-1">Sắp hết</span>';
+}
+
+function createPublicProductRow(product) {
+  const rowClass = isLowStock(product) ? 'low-stock' : '';
+  const image = product.image || PLACEHOLDER_IMG;
+  const categoryName = getCategoryName(publicCategories, product.categoryId);
+  const lowStockBadge = createLowStockBadge(product);
+
+  return `
+    <tr class="${rowClass}">
+      <td>
+        <img class="product-img" src="${image}" onerror="this.src='${PLACEHOLDER_IMG}'">
+      </td>
+      <td>
+        <strong>${product.code}</strong>
+        <div class="small text-muted">${product.name}</div>
+      </td>
+      <td>${categoryName}</td>
+      <td>${product.quantity} ${product.unit || ''} ${lowStockBadge}</td>
+      <td>${money(product.price)}</td>
+      <td>${product.description || ''}</td>
+    </tr>
+  `;
+}
+
+function renderPublicProducts() {
+  const tableBody = qs('productTableBody');
 
   if (!tableBody) {
     return;
   }
 
-  const products = getFilteredProducts();
-  let html = '';
+  const filteredProducts = filterProducts();
 
-  if (products.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="6" class="text-center text-muted py-4">
-          Không có hàng hóa phù hợp.
-        </td>
-      </tr>
-    `;
+  if (filteredProducts.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Không có dữ liệu phù hợp</td></tr>';
     return;
   }
 
-  for (let i = 0; i < products.length; i++) {
-    const product = products[i];
-    const lowStock = isLowStock(product);
-    const categoryName = getCategoryNameById(publicCategories, product.categoryId);
+  let html = '';
 
-    let stockBadge = '<span class="badge text-bg-success ms-1">Ổn</span>';
-
-    if (lowStock) {
-      stockBadge = '<span class="badge text-bg-warning ms-1">Sắp hết</span>';
-    }
-
-    html = html + `
-      <tr class="${lowStock ? 'low-stock' : ''}">
-        <td>
-          <img
-            class="product-img"
-            src="${product.image || PLACEHOLDER_IMG}"
-            alt="${product.name}"
-            onerror="this.src='${PLACEHOLDER_IMG}'"
-          >
-        </td>
-        <td>
-          <strong>${product.code}</strong>
-          <div class="small text-muted">${product.name}</div>
-        </td>
-        <td>${categoryName}</td>
-        <td>
-          <strong>${product.currentStock}</strong> ${product.unit || ''}
-          ${stockBadge}
-        </td>
-        <td>${formatMoney(product.price)}</td>
-        <td>${product.description || ''}</td>
-      </tr>
-    `;
+  for (let i = 0; i < filteredProducts.length; i++) {
+    html += createPublicProductRow(filteredProducts[i]);
   }
 
   tableBody.innerHTML = html;
 }
 
-function renderTransactionTable() {
-  const tableBody = getElement('transactionTableBody');
-
-  if (!tableBody) {
-    return;
-  }
-
-  const sortedTransactions = publicTransactions.slice();
-
-  sortedTransactions.sort(function (a, b) {
-    return new Date(b.createdAt) - new Date(a.createdAt);
+function getProductLabel(productId) {
+  const product = publicProducts.find(function (item) {
+    return String(item.id) === String(productId);
   });
 
-  let html = '';
+  if (!product) {
+    return productId;
+  }
 
-  if (sortedTransactions.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="5" class="text-center text-muted py-4">
-          Chưa có lịch sử nhập/xuất.
-        </td>
-      </tr>
-    `;
+  return product.code + ' - ' + product.name;
+}
+
+function getTransactionBadge(transactionType) {
+  if (transactionType === 'import') {
+    return '<span class="badge text-bg-success">Nhập kho</span>';
+  }
+
+  return '<span class="badge text-bg-danger">Xuất kho</span>';
+}
+
+function createPublicTransactionRow(transaction) {
+  return `
+    <tr>
+      <td>${dateTime(transaction.createdAt)}</td>
+      <td>${getProductLabel(transaction.productId)}</td>
+      <td>${getTransactionBadge(transaction.type)}</td>
+      <td>${transaction.quantity}</td>
+      <td>${transaction.note || ''}</td>
+    </tr>
+  `;
+}
+
+function renderPublicTransactions() {
+  const tableBody = qs('transactionTableBody');
+
+  if (!tableBody) {
     return;
   }
 
-  for (let i = 0; i < sortedTransactions.length && i < 50; i++) {
-    const transaction = sortedTransactions[i];
-    const productName = getProductNameById(publicProducts, transaction.productId);
+  const latestTransactions = publicTransactions.slice().reverse().slice(0, 20);
 
-    let typeLabel = 'Xuất kho';
-    let badgeClass = 'danger';
+  if (latestTransactions.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Chưa có giao dịch</td></tr>';
+    return;
+  }
 
-    if (transaction.type === 'import') {
-      typeLabel = 'Nhập kho';
-      badgeClass = 'success';
-    }
+  let html = '';
 
-    html = html + `
-      <tr>
-        <td>${formatDateTime(transaction.createdAt)}</td>
-        <td>${productName}</td>
-        <td>
-          <span class="badge text-bg-${badgeClass}">
-            ${typeLabel}
-          </span>
-        </td>
-        <td>${transaction.quantity}</td>
-        <td>${transaction.note || ''}</td>
-      </tr>
-    `;
+  for (let i = 0; i < latestTransactions.length; i++) {
+    html += createPublicTransactionRow(latestTransactions[i]);
   }
 
   tableBody.innerHTML = html;
 }
 
-function renderPublicStatistic() {
-  let lowStockCount = 0;
-
-  for (let i = 0; i < publicProducts.length; i++) {
-    if (isLowStock(publicProducts[i])) {
-      lowStockCount = lowStockCount + 1;
-    }
-  }
+function renderPublicStats() {
+  const lowStockProducts = publicProducts.filter(isLowStock);
+  const inventoryValue = calcInventoryValue(publicProducts);
 
   $('#totalProducts').html(publicProducts.length);
-  $('#lowStockCount').html(lowStockCount);
-  $('#inventoryValue').html(formatMoney(calculateInventoryValue(publicProducts)));
+  $('#lowStockCount').html(lowStockProducts.length);
+  $('#inventoryValue').html(money(inventoryValue));
 }
 
-$(document).ready(function () {
-  if (!getElement('productTableBody') && !getElement('transactionTableBody')) {
-    return;
-  }
-
-  loadPublicPage();
-
+function registerPublicEvents() {
   $('#searchInput').on('keyup', function () {
-    renderProductTable();
-    $('#productTableBody').hide().fadeIn(160);
+    renderPublicProducts();
   });
 
   $('#filterCategory').on('change', function () {
-    renderProductTable();
+    renderPublicProducts();
   });
 
   $('#historyToggle').on('click', function () {
-    $('#historyBox').slideDown(180);
-    $(this).fadeOut(120);
+    $('#historyBox').slideDown();
+    $(this).fadeOut();
   });
+}
+
+$(document).ready(function () {
+  // Nếu không ở trang public/index thì không chạy file này.
+  if (!qs('productTableBody')) {
+    return;
+  }
+
+  loadPublicData();
+  registerPublicEvents();
 });
