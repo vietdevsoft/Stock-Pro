@@ -1,214 +1,99 @@
 // =============================
 // FILE: utils.js
-// Mục đích: Chứa các hàm tiện ích dùng chung.
-// Sinh viên nên đọc file này trước khi đọc public.js/admin.js.
+// Mục đích: Chứa các hàm tiện ích dùng chung ở nhiều trang.
 // =============================
 
-function getElement(id) {
+function qs(id) {
   return document.getElementById(id);
 }
 
-function getAllElements(selector) {
-  return document.querySelectorAll(selector);
+function money(value) {
+  const numberValue = Number(value || 0);
+  return numberValue.toLocaleString('vi-VN') + ' đ';
 }
 
-function convertToNumber(value) {
-  const number = Number(value);
-
-  if (Number.isFinite(number)) {
-    return number;
-  }
-
-  return 0;
-}
-
-function formatMoney(value) {
-  const number = convertToNumber(value);
-  return number.toLocaleString('vi-VN') + ' đ';
-}
-
-function formatDateTime(value) {
+function dateTime(value) {
   if (!value) {
     return '';
   }
 
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  return date.toLocaleString('vi-VN');
+  return new Date(value).toLocaleString('vi-VN');
 }
 
-function showLoading(isShow) {
-  const loadingBoxes = getAllElements('.loading-box');
+function formatDateTime(value) {
+  return dateTime(value);
+}
 
-  loadingBoxes.forEach(function (box) {
-    if (isShow) {
-      box.classList.remove('d-none');
-      box.style.display = 'block';
-    } else {
-      box.classList.add('d-none');
-      box.style.display = 'none';
-    }
+function showLoading(show = true) {
+  const loadingBoxes = document.querySelectorAll('.loading-box');
+
+  loadingBoxes.forEach(function (element) {
+    element.style.display = show ? 'block' : 'none';
   });
 }
 
-function showToast(message, type) {
-  const toastBox = getElement('toastBox');
+function showError(message) {
+  showToast(message || 'Có lỗi xảy ra', 'danger');
+}
 
-  if (!type) {
-    type = 'success';
-  }
+function showToast(message, type = 'success') {
+  const toastBox = qs('toastBox');
 
-  if (!toastBox || typeof bootstrap === 'undefined') {
+  // Nếu trang không có vùng hiển thị toast thì dùng alert cho đơn giản.
+  if (!toastBox) {
     alert(message);
     return;
   }
 
   const toastId = 'toast-' + Date.now();
 
-  toastBox.insertAdjacentHTML(
-    'beforeend',
-    `
-      <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0 mb-2" role="alert">
-        <div class="d-flex">
-          <div class="toast-body">${message}</div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
+  toastBox.innerHTML += `
+    <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0 mb-2" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
-    `
-  );
+    </div>
+  `;
 
-  const toastElement = getElement(toastId);
-  const toast = new bootstrap.Toast(toastElement, { delay: 2500 });
-
+  const toastElement = qs(toastId);
+  const toast = new bootstrap.Toast(toastElement);
   toast.show();
+}
 
-  toastElement.addEventListener('hidden.bs.toast', function () {
-    toastElement.remove();
+function getCategoryName(categories, categoryId) {
+  const category = categories.find(function (item) {
+    return String(item.id) === String(categoryId);
   });
-}
 
-function showError(message) {
-  showToast(message || 'Có lỗi xảy ra.', 'danger');
-}
-
-function getCategoryNameById(categories, categoryId) {
-  for (let i = 0; i < categories.length; i++) {
-    if (String(categories[i].id) === String(categoryId)) {
-      return categories[i].name;
-    }
-  }
-
-  return 'Chưa phân loại';
-}
-
-function getProductById(products, productId) {
-  for (let i = 0; i < products.length; i++) {
-    if (String(products[i].id) === String(productId)) {
-      return products[i];
-    }
-  }
-
-  return null;
+  return category ? category.name : 'Chưa phân loại';
 }
 
 function getProductNameById(products, productId) {
-  const product = getProductById(products, productId);
+  const product = products.find(function (item) {
+    return String(item.id) === String(productId);
+  });
 
-  if (product) {
-    return product.code + ' - ' + product.name;
-  }
-
-  return '#' + productId;
-}
-
-// Hàm chính của bài: tính tồn kho từ lịch sử nhập/xuất.
-// Công thức: tồn kho hiện tại = số lượng ban đầu + tổng nhập - tổng xuất.
-// Dùng reduce để đáp ứng yêu cầu đề bài.
-function calculateCurrentStock(product, transactions) {
-  const beginQuantity = convertToNumber(product.quantity);
-
-  const currentStock = transactions.reduce(function (stock, transaction) {
-    const isSameProduct = String(transaction.productId) === String(product.id);
-
-    if (!isSameProduct) {
-      return stock;
-    }
-
-    const quantity = convertToNumber(transaction.quantity);
-
-    if (transaction.type === 'import') {
-      return stock + quantity;
-    }
-
-    if (transaction.type === 'export') {
-      return stock - quantity;
-    }
-
-    return stock;
-  }, beginQuantity);
-
-  return currentStock;
-}
-
-function addCurrentStockToProducts(products, transactions) {
-  const result = [];
-
-  for (let i = 0; i < products.length; i++) {
-    const product = products[i];
-    const currentStock = calculateCurrentStock(product, transactions);
-
-    result.push({
-      ...product,
-      currentStock: currentStock
-    });
-  }
-
-  return result;
+  return product ? product.name : productId;
 }
 
 function isLowStock(product) {
-  const currentStock = convertToNumber(product.currentStock);
-  const minStock = convertToNumber(product.minStock);
+  const quantity = Number(product.quantity || 0);
+  const minStock = Number(product.minStock || 0);
 
-  return currentStock <= minStock;
+  return quantity <= minStock;
 }
 
-function calculateInventoryValue(products) {
+function calcInventoryValue(products) {
   let total = 0;
 
   for (let i = 0; i < products.length; i++) {
-    const stock = convertToNumber(products[i].currentStock);
-    const price = convertToNumber(products[i].price);
+    const product = products[i];
+    const quantity = Number(product.quantity || 0);
+    const price = Number(product.price || 0);
 
-    total = total + stock * price;
+    total += quantity * price;
   }
 
   return total;
-}
-
-function setFieldError(fieldId, message) {
-  const input = getElement(fieldId);
-  const errorBox = getElement(fieldId + 'Error');
-
-  if (errorBox) {
-    errorBox.innerText = message || '';
-  }
-
-  if (input) {
-    if (message) {
-      input.classList.add('is-invalid');
-    } else {
-      input.classList.remove('is-invalid');
-    }
-  }
-}
-
-function clearFieldErrors(fieldIds) {
-  for (let i = 0; i < fieldIds.length; i++) {
-    setFieldError(fieldIds[i], '');
-  }
 }

@@ -1,44 +1,46 @@
 // =============================
 // FILE: validation.js
-// Mục đích: Kiểm tra dữ liệu form trước khi submit.
+// Mục đích: Kiểm tra dữ liệu nhập từ form trước khi gửi lên API.
 // =============================
 
-function isRequired(value) {
+function setFieldError(fieldId, message) {
+  const errorElement = qs(fieldId + 'Error');
+
+  if (errorElement) {
+    errorElement.innerText = message || '';
+  }
+}
+
+function required(value) {
   return value !== undefined && value !== null && String(value).trim() !== '';
 }
 
-function isPositiveInteger(value) {
-  const number = Number(value);
-  return Number.isInteger(number) && number > 0;
+function clearProductFormErrors() {
+  const fieldIds = ['code', 'name', 'categoryId', 'quantity', 'unit', 'price', 'minStock'];
+
+  for (let i = 0; i < fieldIds.length; i++) {
+    setFieldError(fieldIds[i], '');
+  }
 }
 
-function isNonNegativeInteger(value) {
-  const number = Number(value);
-  return Number.isInteger(number) && number >= 0;
+function validateProductCode(code) {
+  return /^SP\d{3,}$/i.test(code);
 }
 
 function validateProductForm(form) {
   let isValid = true;
 
-  clearFieldErrors([
-    'code',
-    'name',
-    'categoryId',
-    'quantity',
-    'unit',
-    'price',
-    'minStock'
-  ]);
-
   const code = form.code.value.trim();
   const name = form.name.value.trim();
   const categoryId = form.categoryId.value;
-  const quantity = form.quantity.value;
-  const unit = form.unit.value.trim();
+  const quantity = Number(form.quantity.value);
+  const unit = form.unit.value;
   const price = Number(form.price.value);
-  const minStock = form.minStock.value;
+  const minStock = Number(form.minStock.value);
 
-  if (!/^SP\d{3,}$/i.test(code)) {
+  clearProductFormErrors();
+
+  if (!validateProductCode(code)) {
     setFieldError('code', 'Mã hàng phải có dạng SP001, SP002...');
     isValid = false;
   }
@@ -48,27 +50,27 @@ function validateProductForm(form) {
     isValid = false;
   }
 
-  if (!isRequired(categoryId)) {
+  if (!required(categoryId)) {
     setFieldError('categoryId', 'Vui lòng chọn nhóm hàng.');
     isValid = false;
   }
 
-  if (!isNonNegativeInteger(quantity)) {
-    setFieldError('quantity', 'Số lượng ban đầu phải là số nguyên >= 0.');
+  if (!Number.isInteger(quantity) || quantity < 0) {
+    setFieldError('quantity', 'Số lượng phải là số nguyên >= 0.');
     isValid = false;
   }
 
-  if (!isRequired(unit)) {
+  if (!required(unit)) {
     setFieldError('unit', 'Vui lòng nhập đơn vị.');
     isValid = false;
   }
 
-  if (!Number.isFinite(price) || price <= 0) {
+  if (isNaN(price) || price <= 0) {
     setFieldError('price', 'Giá tiền phải lớn hơn 0.');
     isValid = false;
   }
 
-  if (!isNonNegativeInteger(minStock)) {
+  if (!Number.isInteger(minStock) || minStock < 0) {
     setFieldError('minStock', 'Tồn tối thiểu phải là số nguyên >= 0.');
     isValid = false;
   }
@@ -76,38 +78,22 @@ function validateProductForm(form) {
   return isValid;
 }
 
-function validateStockForm(form, prefix) {
+function validateStockForm(form) {
   let isValid = true;
 
-  clearFieldErrors([
-    prefix + 'ProductId',
-    prefix + 'Quantity'
-  ]);
+  const productId = form.productId.value;
+  const quantity = Number(form.quantity.value);
 
-  if (!isRequired(form.productId.value)) {
-    setFieldError(prefix + 'ProductId', 'Vui lòng chọn hàng hóa.');
+  setFieldError('stockProductId', '');
+  setFieldError('stockQuantity', '');
+
+  if (!required(productId)) {
+    setFieldError('stockProductId', 'Vui lòng chọn hàng hóa.');
     isValid = false;
   }
 
-  if (!isPositiveInteger(form.quantity.value)) {
-    setFieldError(prefix + 'Quantity', 'Số lượng phải là số nguyên > 0.');
-    isValid = false;
-  }
-
-  return isValid;
-}
-
-function validateCategoryForm() {
-  let isValid = true;
-
-  $('#categoryName').removeClass('is-invalid');
-  $('#categoryNameError').text('');
-
-  const name = $('#categoryName').val().trim();
-
-  if (name.length < 2) {
-    $('#categoryName').addClass('is-invalid');
-    $('#categoryNameError').text('Tên nhóm hàng phải từ 2 ký tự.');
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    setFieldError('stockQuantity', 'Số lượng phải là số nguyên > 0.');
     isValid = false;
   }
 
