@@ -9,4 +9,5 @@ const API = {
   transactions: 'https://6a05ff1ec83ba8ad9b3d19e2.mockapi.io/stock/Transactions'
 };
 
-const PLACEHOLDER_IMG = 'https://placehold.co/80x80?text=SP';
+
+const PLACEHOLDER_IMG = 'https://placehold.co/100x100?text=StockPro';

@@ -1,79 +1,31 @@
-// =============================
-// FILE: api.js
-// Mục đích: Chứa toàn bộ hàm gọi MockAPI.io.
-// =============================
-
-async function apiGet(url) {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error('GET API lỗi: ' + url);
+async function requestJSON(url, options = {}) {
+  try {
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    });
+    if (!response.ok) throw new Error(`API lỗi ${response.status}: ${url}`);
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    throw error;
   }
-
-  const data = await response.json();
-  return data;
 }
 
-async function apiPost(url, data) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-
-  if (!response.ok) {
-    throw new Error('POST API lỗi: ' + url);
-  }
-
-  const result = await response.json();
-  return result;
-}
-
-async function apiPut(url, data) {
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-
-  if (!response.ok) {
-    throw new Error('PUT API lỗi: ' + url);
-  }
-
-  const result = await response.json();
-  return result;
-}
-
-async function apiDelete(url) {
-  const response = await fetch(url, {
-    method: 'DELETE'
-  });
-
-  if (!response.ok) {
-    throw new Error('DELETE API lỗi: ' + url);
-  }
-
-  const result = await response.json();
-  return result;
-}
+const apiGet = url => requestJSON(url);
+const apiPost = (url, data) => requestJSON(url, { method: 'POST', body: JSON.stringify(data) });
+const apiPut = (url, data) => requestJSON(url, { method: 'PUT', body: JSON.stringify(data) });
+const apiDelete = url => requestJSON(url, { method: 'DELETE' });
 
 async function loadAllStockData() {
-  const products = await apiGet(API.products);
-  const transactions = await apiGet(API.transactions);
+  const [products, transactions] = await Promise.all([
+    apiGet(API.products),
+    apiGet(API.transactions)
+  ]);
 
-  // Dùng jQuery AJAX để đáp ứng yêu cầu môn học.
+  // jQuery AJAX requirement: use $.get for one API call.
   const categories = await $.get(API.categories);
 
-  const productsWithStock = addCurrentStockToProducts(products, transactions);
-
-  return {
-    rawProducts: products,
-    products: productsWithStock,
-    categories: categories,
-    transactions: transactions
-  };
+  const enrichedProducts = enrichProductsWithStock(products, transactions);
+  return { products: enrichedProducts, rawProducts: products, categories, transactions };
 }

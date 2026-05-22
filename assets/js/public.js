@@ -57,8 +57,8 @@ function getFilteredProducts() {
   const searchInput = getElement('searchInput');
   const categorySelect = getElement('filterCategory');
 
-  const keyword = searchInput.value.trim().toLowerCase();
-  const categoryId = categorySelect.value;
+  const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  const categoryId = categorySelect ? categorySelect.value : '';
 
   const filteredProducts = [];
 
@@ -211,7 +211,7 @@ function renderPublicStatistic() {
 }
 
 $(document).ready(function () {
-  if (!getElement('productTableBody')) {
+  if (!getElement('productTableBody') && !getElement('transactionTableBody')) {
     return;
   }
 
