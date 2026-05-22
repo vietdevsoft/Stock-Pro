@@ -15,12 +15,19 @@ function required(value) {
   return value !== undefined && value !== null && String(value).trim() !== '';
 }
 
-function clearProductFormErrors() {
-  const fieldIds = ['code', 'name', 'categoryId', 'quantity', 'unit', 'price', 'minStock'];
+function getFormValue(form, fieldName) {
+  const field = form.querySelector(`[name="${fieldName}"]`);
+  return field ? field.value : '';
+}
 
+function clearFieldErrors(fieldIds) {
   for (let i = 0; i < fieldIds.length; i++) {
     setFieldError(fieldIds[i], '');
   }
+}
+
+function clearProductFormErrors() {
+  clearFieldErrors(['code', 'name', 'categoryId', 'quantity', 'unit', 'price', 'minStock']);
 }
 
 function validateProductCode(code) {
@@ -30,13 +37,13 @@ function validateProductCode(code) {
 function validateProductForm(form) {
   let isValid = true;
 
-  const code = form.code.value.trim();
-  const name = form.name.value.trim();
-  const categoryId = form.categoryId.value;
-  const quantity = Number(form.quantity.value);
-  const unit = form.unit.value;
-  const price = Number(form.price.value);
-  const minStock = Number(form.minStock.value);
+  const code = getFormValue(form, 'code').trim();
+  const name = getFormValue(form, 'name').trim();
+  const categoryId = getFormValue(form, 'categoryId');
+  const quantity = Number(getFormValue(form, 'quantity'));
+  const unit = getFormValue(form, 'unit');
+  const price = Number(getFormValue(form, 'price'));
+  const minStock = Number(getFormValue(form, 'minStock'));
 
   clearProductFormErrors();
 
@@ -78,24 +85,44 @@ function validateProductForm(form) {
   return isValid;
 }
 
+function getStockFieldPrefix(form) {
+  if (form.id === 'importForm') {
+    return 'import';
+  }
+
+  if (form.id === 'exportForm') {
+    return 'export';
+  }
+
+  return 'stock';
+}
+
 function validateStockForm(form) {
   let isValid = true;
+  const prefix = getStockFieldPrefix(form);
 
-  const productId = form.productId.value;
-  const quantity = Number(form.quantity.value);
+  const productIdFieldId = prefix + 'ProductId';
+  const quantityFieldId = prefix + 'Quantity';
 
-  setFieldError('stockProductId', '');
-  setFieldError('stockQuantity', '');
+  const productId = getFormValue(form, 'productId');
+  const quantity = Number(getFormValue(form, 'quantity'));
+
+  clearFieldErrors([productIdFieldId, quantityFieldId]);
 
   if (!required(productId)) {
-    setFieldError('stockProductId', 'Vui lòng chọn hàng hóa.');
+    setFieldError(productIdFieldId, 'Vui lòng chọn hàng hóa.');
     isValid = false;
   }
 
   if (!Number.isInteger(quantity) || quantity <= 0) {
-    setFieldError('stockQuantity', 'Số lượng phải là số nguyên > 0.');
+    setFieldError(quantityFieldId, 'Số lượng sản phẩm phải lớn hơn 0.');
     isValid = false;
   }
 
   return isValid;
+}
+
+function setStockQuantityError(form, message) {
+  const prefix = getStockFieldPrefix(form);
+  setFieldError(prefix + 'Quantity', message);
 }

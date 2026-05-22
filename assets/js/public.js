@@ -11,15 +11,11 @@ async function loadPublicData() {
   showLoading(true);
 
   try {
-    // Lấy sản phẩm và lịch sử giao dịch bằng fetch API.
-    const products = await apiGet(API.products);
-    const transactions = await apiGet(API.transactions);
+    const data = await loadAllStockData();
 
-    publicProducts = products;
-    publicTransactions = transactions;
-
-    // Yêu cầu bài: dùng jQuery AJAX ít nhất một API.
-    publicCategories = await $.get(API.categories);
+    publicCategories = data.categories;
+    publicTransactions = data.transactions;
+    publicProducts = applyCurrentStockToProducts(data.products, publicTransactions);
 
     renderCategoryFilter();
     renderPublicProducts();
@@ -44,7 +40,7 @@ function renderCategoryFilter() {
 
   for (let i = 0; i < publicCategories.length; i++) {
     const category = publicCategories[i];
-    html += `<option value="${category.id}">${category.name}</option>`;
+    html += `<option value="${category._categoryId}">${category.name}</option>`;
   }
 
   select.innerHTML = html;
@@ -96,7 +92,7 @@ function createLowStockBadge(product) {
 
 function createPublicProductRow(product) {
   const rowClass = isLowStock(product) ? 'low-stock' : '';
-  const image = product.image || PLACEHOLDER_IMG;
+  const image = getProductImage(product);
   const categoryName = getCategoryName(publicCategories, product.categoryId);
   const lowStockBadge = createLowStockBadge(product);
 
@@ -110,7 +106,7 @@ function createPublicProductRow(product) {
         <div class="small text-muted">${product.name}</div>
       </td>
       <td>${categoryName}</td>
-      <td>${product.quantity} ${product.unit || ''} ${lowStockBadge}</td>
+      <td>${getDisplayQuantity(product)} ${product.unit || ''} ${lowStockBadge}</td>
       <td>${money(product.price)}</td>
       <td>${product.description || ''}</td>
     </tr>
@@ -140,18 +136,6 @@ function renderPublicProducts() {
   tableBody.innerHTML = html;
 }
 
-function getProductLabel(productId) {
-  const product = publicProducts.find(function (item) {
-    return String(item.id) === String(productId);
-  });
-
-  if (!product) {
-    return productId;
-  }
-
-  return product.code + ' - ' + product.name;
-}
-
 function getTransactionBadge(transactionType) {
   if (transactionType === 'import') {
     return '<span class="badge text-bg-success">Nhập kho</span>';
@@ -164,7 +148,7 @@ function createPublicTransactionRow(transaction) {
   return `
     <tr>
       <td>${dateTime(transaction.createdAt)}</td>
-      <td>${getProductLabel(transaction.productId)}</td>
+      <td>${getProductNameById(publicProducts, transaction.productId)}</td>
       <td>${getTransactionBadge(transaction.type)}</td>
       <td>${transaction.quantity}</td>
       <td>${transaction.note || ''}</td>
@@ -179,7 +163,7 @@ function renderPublicTransactions() {
     return;
   }
 
-  const latestTransactions = publicTransactions.slice().reverse().slice(0, 20);
+  const latestTransactions = publicTransactions.slice().reverse().slice(0, 50);
 
   if (latestTransactions.length === 0) {
     tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Chưa có giao dịch</td></tr>';
@@ -220,7 +204,6 @@ function registerPublicEvents() {
 }
 
 $(document).ready(function () {
-  // Nếu không ở trang public/index thì không chạy file này.
   if (!qs('productTableBody')) {
     return;
   }
