@@ -1,126 +1,278 @@
-let products = [];
+// =============================
+// FILE: admin.js
+// Mục đích: Xử lý trang Admin gồm:
+// - CRUD hàng hóa
+// - CRUD danh mục
+// - Nhập kho
+// - Xuất kho
+// - Cảnh báo tồn kho thấp
+// =============================
+
+let adminProducts = [];
 let rawProducts = [];
-let categories = [];
-let transactions = [];
+let adminCategories = [];
+let adminTransactions = [];
 let editingProductId = null;
 let editingCategoryId = null;
 
-async function loadAdminData() {
+async function loadAdminPage() {
   showLoading(true);
+
   try {
     const data = await loadAllStockData();
-    products = data.products;
-    rawProducts = data.rawProducts;
-    categories = data.categories;
-    transactions = data.transactions;
 
-    renderAdminStats();
-    renderProductSelects();
-    renderAdminProducts();
+    adminProducts = data.products;
+    rawProducts = data.rawProducts;
+    adminCategories = data.categories;
+    adminTransactions = data.transactions;
+
+    renderAdminStatistics();
+    renderProductSelectOptions();
+    renderCategoryOptions();
+    renderAdminProductTable();
     renderCategoryList();
-    renderAdminTransactions();
+    renderAdminTransactionTable();
     renderLowStockAlerts();
   } catch (error) {
+    console.error(error);
     showError('Không tải được dữ liệu quản trị từ MockAPI.');
   } finally {
     showLoading(false);
   }
 }
 
-function renderAdminStats() {
-  $('#adTotalProducts').html(products.length);
-  $('#adLowStock').html(products.filter(isLowStock).length);
-  $('#adInventoryValue').html(money(calcInventoryValue(products)));
+function renderAdminStatistics() {
+  let lowStockCount = 0;
+
+  for (let i = 0; i < adminProducts.length; i++) {
+    if (isLowStock(adminProducts[i])) {
+      lowStockCount = lowStockCount + 1;
+    }
+  }
+
+  $('#adTotalProducts').html(adminProducts.length);
+  $('#adLowStock').html(lowStockCount);
+  $('#adInventoryValue').html(formatMoney(calculateInventoryValue(adminProducts)));
 }
 
-function renderProductSelects() {
-  const html = '<option value="">Chọn hàng hóa</option>' + products.map(product =>
-    `<option value="${product.id}">${product.code} - ${product.name} | Tồn: ${product.currentStock} ${product.unit || ''}</option>`
-  ).join('');
-  $('#importProductId, #exportProductId').html(html);
+function renderProductSelectOptions() {
+  let html = '<option value="">Chọn hàng hóa</option>';
+
+  for (let i = 0; i < adminProducts.length; i++) {
+    const product = adminProducts[i];
+
+    html = html + `
+      <option value="${product.id}">
+        ${product.code} - ${product.name} | Tồn: ${product.currentStock} ${product.unit || ''}
+      </option>
+    `;
+  }
+
+  $('#importProductId').html(html);
+  $('#exportProductId').html(html);
 }
 
-function fillCategoryOptions(selectedId = '') {
-  $('#categoryId').html('<option value="">Chọn nhóm hàng</option>' +
-    categories.map(c => `<option value="${c.id}" ${String(c.id) === String(selectedId) ? 'selected' : ''}>${c.name}</option>`).join('')
-  );
+function renderCategoryOptions(selectedCategoryId = '') {
+  let html = '<option value="">Chọn nhóm hàng</option>';
+
+  for (let i = 0; i < adminCategories.length; i++) {
+    const category = adminCategories[i];
+    const selected = String(category.id) === String(selectedCategoryId) ? 'selected' : '';
+
+    html = html + `
+      <option value="${category.id}" ${selected}>
+        ${category.name}
+      </option>
+    `;
+  }
+
+  $('#categoryId').html(html);
 }
 
-function renderAdminProducts() {
-  const tbody = qs('adminProductBody');
-  if (!tbody) return;
+function renderAdminProductTable() {
+  const tableBody = getElement('adminProductBody');
 
-  tbody.innerHTML = products.map(product => {
-    const low = isLowStock(product);
-    return `
-      <tr class="${low ? 'low-stock' : ''}">
-        <td><strong>${product.code}</strong></td>
-        <td>${product.name}</td>
-        <td>${getCategoryName(categories, product.categoryId)}</td>
-        <td>${product.currentStock} ${product.unit || ''}</td>
-        <td>${money(product.price)}</td>
-        <td>${product.minStock}</td>
-        <td>${low ? '<span class="badge text-bg-warning">Tồn thấp</span>' : '<span class="badge text-bg-success">Ổn</span>'}</td>
-        <td class="text-nowrap">
-          <button class="btn btn-sm btn-outline-primary edit-product" data-id="${product.id}">Sửa</button>
-          <button class="btn btn-sm btn-outline-danger delete-product" data-id="${product.id}">Xóa</button>
+  if (!tableBody) {
+    return;
+  }
+
+  let html = '';
+
+  if (adminProducts.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">
+          Chưa có hàng hóa.
         </td>
-      </tr>`;
-  }).join('') || '<tr><td colspan="8" class="text-center text-muted py-4">Chưa có hàng hóa</td></tr>';
+      </tr>
+    `;
+    return;
+  }
+
+  for (let i = 0; i < adminProducts.length; i++) {
+    const product = adminProducts[i];
+    const lowStock = isLowStock(product);
+    const categoryName = getCategoryNameById(adminCategories, product.categoryId);
+
+    let statusBadge = '<span class="badge text-bg-success">Ổn</span>';
+
+    if (lowStock) {
+      statusBadge = '<span class="badge text-bg-warning">Tồn thấp</span>';
+    }
+
+    html = html + `
+      <tr class="${lowStock ? 'low-stock' : ''}">
+        <td>
+          <strong>${product.code}</strong>
+        </td>
+        <td>${product.name}</td>
+        <td>${categoryName}</td>
+        <td>${product.currentStock} ${product.unit || ''}</td>
+        <td>${formatMoney(product.price)}</td>
+        <td>${product.minStock}</td>
+        <td>${statusBadge}</td>
+        <td class="text-nowrap">
+          <button class="btn btn-sm btn-outline-primary edit-product" data-id="${product.id}">
+            Sửa
+          </button>
+          <button class="btn btn-sm btn-outline-danger delete-product" data-id="${product.id}">
+            Xóa
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
+  tableBody.innerHTML = html;
 }
 
 function renderLowStockAlerts() {
-  const box = qs('lowStockAlertList');
-  if (!box) return;
+  const alertBox = getElement('lowStockAlertList');
 
-  const lows = products.filter(isLowStock);
-  box.innerHTML = lows.length ? lows.map(product => `
-    <div class="list-group-item d-flex justify-content-between align-items-center">
-      <div>
-        <strong>${product.code}</strong> - ${product.name}
-        <div class="small text-muted">Tối thiểu: ${product.minStock} | Hiện tại: ${product.currentStock}</div>
-      </div>
-      <span class="badge text-bg-warning">Cần nhập thêm</span>
-    </div>
-  `).join('') : '<div class="list-group-item text-muted">Không có hàng tồn kho thấp.</div>';
+  if (!alertBox) {
+    return;
+  }
+
+  let html = '';
+  let hasLowStock = false;
+
+  for (let i = 0; i < adminProducts.length; i++) {
+    const product = adminProducts[i];
+
+    if (isLowStock(product)) {
+      hasLowStock = true;
+
+      html = html + `
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <strong>${product.code}</strong> - ${product.name}
+            <div class="small text-muted">
+              Tối thiểu: ${product.minStock} | Hiện tại: ${product.currentStock}
+            </div>
+          </div>
+          <span class="badge text-bg-warning">Cần nhập thêm</span>
+        </div>
+      `;
+    }
+  }
+
+  if (!hasLowStock) {
+    html = '<div class="list-group-item text-muted">Không có hàng tồn kho thấp.</div>';
+  }
+
+  alertBox.innerHTML = html;
 }
 
 function renderCategoryList() {
-  $('#categoryList').html(categories.map(category => `
-    <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-      <div>
-        <strong>${category.name}</strong>
-        <div class="text-muted small">${category.description || 'Không có mô tả'}</div>
-      </div>
-      <div class="text-nowrap">
-        <button class="btn btn-sm btn-outline-primary edit-category" data-id="${category.id}">Sửa</button>
-        <button class="btn btn-sm btn-outline-danger delete-category" data-id="${category.id}">Xóa</button>
-      </div>
-    </li>
-  `).join('') || '<li class="list-group-item text-muted">Chưa có danh mục</li>');
+  let html = '';
+
+  if (adminCategories.length === 0) {
+    $('#categoryList').html('<li class="list-group-item text-muted">Chưa có danh mục.</li>');
+    return;
+  }
+
+  for (let i = 0; i < adminCategories.length; i++) {
+    const category = adminCategories[i];
+
+    html = html + `
+      <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
+        <div>
+          <strong>${category.name}</strong>
+          <div class="text-muted small">
+            ${category.description || 'Không có mô tả'}
+          </div>
+        </div>
+        <div class="text-nowrap">
+          <button class="btn btn-sm btn-outline-primary edit-category" data-id="${category.id}">
+            Sửa
+          </button>
+          <button class="btn btn-sm btn-outline-danger delete-category" data-id="${category.id}">
+            Xóa
+          </button>
+        </div>
+      </li>
+    `;
+  }
+
+  $('#categoryList').html(html);
 }
 
-function renderAdminTransactions() {
-  $('#adminTransactionBody').html(transactions
-    .slice()
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, 20)
-    .map(transaction => {
-      const label = transaction.type === 'import' ? 'Nhập kho' : 'Xuất kho';
-      const badge = transaction.type === 'import' ? 'success' : 'danger';
-      return `
-        <tr>
-          <td>${dateTime(transaction.createdAt)}</td>
-          <td>${getProductName(products, transaction.productId)}</td>
-          <td><span class="badge text-bg-${badge}">${label}</span></td>
-          <td>${transaction.quantity}</td>
-          <td>${transaction.note || ''}</td>
-        </tr>`;
-    }).join('') || '<tr><td colspan="5" class="text-center text-muted py-4">Chưa có giao dịch</td></tr>');
+function renderAdminTransactionTable() {
+  const sortedTransactions = adminTransactions.slice();
+
+  sortedTransactions.sort(function (a, b) {
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  let html = '';
+
+  if (sortedTransactions.length === 0) {
+    $('#adminTransactionBody').html(`
+      <tr>
+        <td colspan="5" class="text-center text-muted py-4">
+          Chưa có giao dịch.
+        </td>
+      </tr>
+    `);
+    return;
+  }
+
+  for (let i = 0; i < sortedTransactions.length && i < 20; i++) {
+    const transaction = sortedTransactions[i];
+    const productName = getProductNameById(adminProducts, transaction.productId);
+
+    let label = 'Xuất kho';
+    let badgeClass = 'danger';
+
+    if (transaction.type === 'import') {
+      label = 'Nhập kho';
+      badgeClass = 'success';
+    }
+
+    html = html + `
+      <tr>
+        <td>${formatDateTime(transaction.createdAt)}</td>
+        <td>${productName}</td>
+        <td>
+          <span class="badge text-bg-${badgeClass}">${label}</span>
+        </td>
+        <td>${transaction.quantity}</td>
+        <td>${transaction.note || ''}</td>
+      </tr>
+    `;
+  }
+
+  $('#adminTransactionBody').html(html);
 }
 
-function productPayload(form) {
-  return {
+function createProductPayload(form) {
+  let image = form.image.value.trim();
+
+  if (image === '') {
+    image = PLACEHOLDER_IMG;
+  }
+
+  const payload = {
     code: form.code.value.trim().toUpperCase(),
     name: form.name.value.trim(),
     categoryId: Number(form.categoryId.value),
@@ -129,53 +281,89 @@ function productPayload(form) {
     price: Number(form.price.value),
     minStock: Number(form.minStock.value),
     description: form.description.value.trim(),
-    image: form.image.value.trim() || PLACEHOLDER_IMG,
-    createdAt: editingProductId ? (rawProducts.find(p => String(p.id) === String(editingProductId))?.createdAt || new Date().toISOString()) : new Date().toISOString()
+    image: image,
+    createdAt: new Date().toISOString()
   };
+
+  if (editingProductId) {
+    const oldProduct = getProductById(rawProducts, editingProductId);
+
+    if (oldProduct && oldProduct.createdAt) {
+      payload.createdAt = oldProduct.createdAt;
+    }
+  }
+
+  return payload;
+}
+
+function isDuplicateProductCode(code) {
+  for (let i = 0; i < adminProducts.length; i++) {
+    const product = adminProducts[i];
+
+    const sameCode = product.code.toLowerCase() === code.toLowerCase();
+    const differentProduct = String(product.id) !== String(editingProductId);
+
+    if (sameCode && differentProduct) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function saveProduct(event) {
   event.preventDefault();
-  const form = event.target;
-  if (!validateProductForm(form)) return;
 
-  const duplicateCode = products.some(p =>
-    p.code.toLowerCase() === form.code.value.trim().toLowerCase() && String(p.id) !== String(editingProductId)
-  );
-  if (duplicateCode) {
+  const form = event.target;
+
+  if (!validateProductForm(form)) {
+    return;
+  }
+
+  const code = form.code.value.trim();
+
+  if (isDuplicateProductCode(code)) {
     setFieldError('code', 'Mã hàng đã tồn tại.');
     return;
   }
 
+  const payload = createProductPayload(form);
+
   try {
-    const payload = productPayload(form);
     if (editingProductId) {
-      await apiPut(`${API.products}/${editingProductId}`, payload);
+      await apiPut(API.products + '/' + editingProductId, payload);
       showToast('Đã cập nhật hàng hóa.');
     } else {
       await apiPost(API.products, payload);
       showToast('Đã thêm hàng hóa.');
     }
+
     editingProductId = null;
     form.reset();
     $('#productFormBox').fadeOut(120);
-    await loadAdminData();
-    fillCategoryOptions();
+    await loadAdminPage();
   } catch (error) {
+    console.error(error);
     showError('Lưu hàng hóa thất bại.');
   }
 }
 
-function startEditProduct(id) {
-  const product = rawProducts.find(p => String(p.id) === String(id));
-  if (!product) return;
+function startEditProduct(productId) {
+  const product = getProductById(rawProducts, productId);
+
+  if (!product) {
+    return;
+  }
 
   editingProductId = product.id;
-  fillCategoryOptions(product.categoryId);
+
   $('#productFormTitle').text('Cập nhật hàng hóa');
   $('#productFormBox').fadeIn(120);
 
-  const form = qs('productForm');
+  renderCategoryOptions(product.categoryId);
+
+  const form = getElement('productForm');
+
   form.code.value = product.code || '';
   form.name.value = product.name || '';
   form.categoryId.value = product.categoryId || '';
@@ -187,61 +375,86 @@ function startEditProduct(id) {
   form.image.value = product.image || '';
 }
 
-async function deleteProduct(id) {
-  const hasTransactions = transactions.some(t => String(t.productId) === String(id));
+async function deleteProduct(productId) {
+  const hasTransactions = adminTransactions.some(function (transaction) {
+    return String(transaction.productId) === String(productId);
+  });
+
   const message = hasTransactions
     ? 'Hàng hóa này đã có lịch sử nhập/xuất. Vẫn xóa hàng hóa? Lịch sử giao dịch sẽ giữ lại productId.'
-    : 'Xóa hàng hóa này?';
-  if (!confirm(message)) return;
+    : 'Bạn có chắc muốn xóa hàng hóa này không?';
+
+  if (!confirm(message)) {
+    return;
+  }
 
   try {
-    await apiDelete(`${API.products}/${id}`);
+    await apiDelete(API.products + '/' + productId);
     showToast('Đã xóa hàng hóa.');
-    await loadAdminData();
-    fillCategoryOptions();
+    await loadAdminPage();
   } catch (error) {
+    console.error(error);
     showError('Xóa hàng hóa thất bại.');
   }
 }
 
 async function submitStock(event, type) {
   event.preventDefault();
+
   const form = event.target;
   const prefix = type === 'import' ? 'import' : 'export';
-  if (!validateStockForm(form, prefix)) return;
 
-  const product = products.find(p => String(p.id) === String(form.productId.value));
+  if (!validateStockForm(form, prefix)) {
+    return;
+  }
+
+  const productId = form.productId.value;
+  const quantity = Number(form.quantity.value);
+  const product = getProductById(adminProducts, productId);
+
   if (!product) {
     showError('Không tìm thấy hàng hóa.');
     return;
   }
 
-  const qty = Number(form.quantity.value);
-  if (type === 'export' && qty > Number(product.currentStock)) {
-    setFieldError('exportQuantity', `Không được xuất quá tồn kho hiện tại (${product.currentStock}).`);
+  if (type === 'export' && quantity > Number(product.currentStock)) {
+    setFieldError('exportQuantity', 'Không được xuất quá tồn kho hiện tại: ' + product.currentStock);
     return;
   }
 
-  try {
-    await apiPost(API.transactions, {
-      productId: Number(product.id),
-      type,
-      quantity: qty,
-      note: form.note.value.trim(),
-      createdAt: new Date().toISOString()
-    });
+  const transaction = {
+    productId: Number(productId),
+    type: type,
+    quantity: quantity,
+    note: form.note.value.trim(),
+    createdAt: new Date().toISOString()
+  };
 
-    showToast(type === 'import' ? 'Nhập kho thành công.' : 'Xuất kho thành công.');
+  try {
+    // Chỉ lưu phiếu nhập/xuất vào Transactions.
+    // Tồn kho hiện tại được tính lại từ Products + Transactions.
+    await apiPost(API.transactions, transaction);
+
+    if (type === 'import') {
+      showToast('Nhập kho thành công.');
+    } else {
+      showToast('Xuất kho thành công.');
+    }
+
     form.reset();
-    await loadAdminData();
+    await loadAdminPage();
   } catch (error) {
+    console.error(error);
     showError('Xử lý nhập/xuất kho thất bại.');
   }
 }
 
 async function saveCategory(event) {
   event.preventDefault();
-  if (!validateCategoryForm()) return;
+
+  if (!validateCategoryForm()) {
+    return;
+  }
 
   const payload = {
     name: $('#categoryName').val().trim(),
@@ -250,83 +463,147 @@ async function saveCategory(event) {
 
   try {
     if (editingCategoryId) {
-      await apiPut(`${API.categories}/${editingCategoryId}`, payload);
+      await apiPut(API.categories + '/' + editingCategoryId, payload);
       showToast('Đã cập nhật danh mục.');
     } else {
-      // jQuery AJAX requirement: POST at least one API by jQuery.
-      await $.ajax({ url: API.categories, method: 'POST', data: JSON.stringify(payload), contentType: 'application/json' });
+      // Dùng jQuery AJAX để đáp ứng yêu cầu đề bài.
+      await $.ajax({
+        url: API.categories,
+        method: 'POST',
+        data: JSON.stringify(payload),
+        contentType: 'application/json'
+      });
+
       showToast('Đã thêm danh mục.');
     }
+
     editingCategoryId = null;
     $('#categoryFormTitle').text('Thêm danh mục');
+    $('#categorySubmitBtn').text('Thêm danh mục');
     $('#categoryForm')[0].reset();
-    await loadAdminData();
-    fillCategoryOptions();
+    await loadAdminPage();
   } catch (error) {
+    console.error(error);
     showError('Lưu danh mục thất bại.');
   }
 }
 
-function startEditCategory(id) {
-  const category = categories.find(c => String(c.id) === String(id));
-  if (!category) return;
+function startEditCategory(categoryId) {
+  let category = null;
+
+  for (let i = 0; i < adminCategories.length; i++) {
+    if (String(adminCategories[i].id) === String(categoryId)) {
+      category = adminCategories[i];
+      break;
+    }
+  }
+
+  if (!category) {
+    return;
+  }
+
   editingCategoryId = category.id;
+
   $('#categoryFormTitle').text('Cập nhật danh mục');
   $('#categoryName').val(category.name);
   $('#categoryDescription').val(category.description || '');
+  $('#categorySubmitBtn').text('Cập nhật danh mục');
   $('#categoryName').focus();
 }
 
-async function deleteCategory(id) {
-  const used = products.some(p => String(p.categoryId) === String(id));
-  if (used) {
+async function deleteCategory(categoryId) {
+  const isUsed = adminProducts.some(function (product) {
+    return String(product.categoryId) === String(categoryId);
+  });
+
+  if (isUsed) {
     showError('Không thể xóa danh mục đang có hàng hóa sử dụng.');
     return;
   }
-  if (!confirm('Xóa danh mục này?')) return;
+
+  if (!confirm('Xóa danh mục này?')) {
+    return;
+  }
 
   try {
-    await apiDelete(`${API.categories}/${id}`);
+    await apiDelete(API.categories + '/' + categoryId);
     showToast('Đã xóa danh mục.');
-    await loadAdminData();
-    fillCategoryOptions();
+    await loadAdminPage();
   } catch (error) {
+    console.error(error);
     showError('Xóa danh mục thất bại.');
   }
 }
 
 $(document).ready(function () {
-  if (!qs('adminProductBody')) return;
+  if (!getElement('adminProductBody')) {
+    return;
+  }
 
-  loadAdminData().then(() => fillCategoryOptions());
+  loadAdminPage();
 
-  $('#showProductForm').on('click', function () {
+  $('#showProductFormBtn, #showProductForm').on('click', function () {
     editingProductId = null;
-    $('#productFormTitle').text('Thêm hàng hóa');
-    qs('productForm').reset();
-    clearFieldErrors(['code', 'name', 'categoryId', 'quantity', 'unit', 'price', 'minStock']);
-    fillCategoryOptions();
-    $('#productFormBox').fadeIn(120);
+    $('#productForm')[0].reset();
+    $('#productFormTitle').text('Thêm hàng hóa mới');
+    renderCategoryOptions();
+
+    clearFieldErrors([
+      'code',
+      'name',
+      'categoryId',
+      'quantity',
+      'unit',
+      'price',
+      'minStock'
+    ]);
+
+    $('#productFormBox').slideDown(180);
   });
 
-  $('#hideProductForm').on('click', function () {
+  $('#cancelProductFormBtn, #hideProductForm').on('click', function () {
     editingProductId = null;
-    $('#productFormBox').fadeOut(120);
+    $('#productForm')[0].reset();
+    $('#productFormBox').slideUp(160);
   });
 
   $('#productForm').on('submit', saveProduct);
-  $('#importForm').on('submit', event => submitStock(event, 'import'));
-  $('#exportForm').on('submit', event => submitStock(event, 'export'));
+
+  $('#importForm').on('submit', function (event) {
+    submitStock(event, 'import');
+  });
+
+  $('#exportForm').on('submit', function (event) {
+    submitStock(event, 'export');
+  });
+
   $('#categoryForm').on('submit', saveCategory);
+
   $('#resetCategoryForm').on('click', function () {
     editingCategoryId = null;
     $('#categoryFormTitle').text('Thêm danh mục');
+    $('#categorySubmitBtn').text('Thêm danh mục');
     $('#categoryForm')[0].reset();
     $('#categoryNameError').text('');
   });
 
-  $(document).on('click', '.edit-product', function () { startEditProduct($(this).attr('data-id')); });
-  $(document).on('click', '.delete-product', function () { deleteProduct($(this).attr('data-id')); });
-  $(document).on('click', '.edit-category', function () { startEditCategory($(this).attr('data-id')); });
-  $(document).on('click', '.delete-category', function () { deleteCategory($(this).attr('data-id')); });
+  $(document).on('click', '.edit-product', function () {
+    const productId = $(this).attr('data-id');
+    startEditProduct(productId);
+  });
+
+  $(document).on('click', '.delete-product', function () {
+    const productId = $(this).attr('data-id');
+    deleteProduct(productId);
+  });
+
+  $(document).on('click', '.edit-category', function () {
+    const categoryId = $(this).attr('data-id');
+    startEditCategory(categoryId);
+  });
+
+  $(document).on('click', '.delete-category', function () {
+    const categoryId = $(this).attr('data-id');
+    deleteCategory(categoryId);
+  });
 });
