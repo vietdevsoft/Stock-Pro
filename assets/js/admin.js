@@ -72,7 +72,7 @@ function renderProductSelectOptions() {
   $('#exportProductId').html(html);
 }
 
-function renderCategoryOptions(selectedCategoryId) {
+function renderCategoryOptions(selectedCategoryId = '') {
   let html = '<option value="">Chọn nhóm hàng</option>';
 
   for (let i = 0; i < adminCategories.length; i++) {
@@ -315,9 +315,8 @@ async function saveProduct(event) {
   event.preventDefault();
 
   const form = event.target;
-  const isValid = validateProductForm(form);
 
-  if (!isValid) {
+  if (!validateProductForm(form)) {
     return;
   }
 
@@ -377,9 +376,15 @@ function startEditProduct(productId) {
 }
 
 async function deleteProduct(productId) {
-  const confirmDelete = confirm('Bạn có chắc muốn xóa hàng hóa này không?');
+  const hasTransactions = adminTransactions.some(function (transaction) {
+    return String(transaction.productId) === String(productId);
+  });
 
-  if (!confirmDelete) {
+  const message = hasTransactions
+    ? 'Hàng hóa này đã có lịch sử nhập/xuất. Vẫn xóa hàng hóa? Lịch sử giao dịch sẽ giữ lại productId.'
+    : 'Bạn có chắc muốn xóa hàng hóa này không?';
+
+  if (!confirm(message)) {
     return;
   }
 
@@ -426,8 +431,8 @@ async function submitStock(event, type) {
   };
 
   try {
-    // Logic chính: chỉ lưu phiếu nhập/xuất vào Transactions.
-    // Tồn kho sẽ được tính lại bằng JS từ Products + Transactions.
+    // Chỉ lưu phiếu nhập/xuất vào Transactions.
+    // Tồn kho hiện tại được tính lại từ Products + Transactions.
     await apiPost(API.transactions, transaction);
 
     if (type === 'import') {
@@ -473,8 +478,9 @@ async function saveCategory(event) {
     }
 
     editingCategoryId = null;
-    $('#categoryForm')[0].reset();
+    $('#categoryFormTitle').text('Thêm danh mục');
     $('#categorySubmitBtn').text('Thêm danh mục');
+    $('#categoryForm')[0].reset();
     await loadAdminPage();
   } catch (error) {
     console.error(error);
@@ -498,15 +504,24 @@ function startEditCategory(categoryId) {
 
   editingCategoryId = category.id;
 
+  $('#categoryFormTitle').text('Cập nhật danh mục');
   $('#categoryName').val(category.name);
   $('#categoryDescription').val(category.description || '');
   $('#categorySubmitBtn').text('Cập nhật danh mục');
+  $('#categoryName').focus();
 }
 
 async function deleteCategory(categoryId) {
-  const confirmDelete = confirm('Xóa danh mục này?');
+  const isUsed = adminProducts.some(function (product) {
+    return String(product.categoryId) === String(categoryId);
+  });
 
-  if (!confirmDelete) {
+  if (isUsed) {
+    showError('Không thể xóa danh mục đang có hàng hóa sử dụng.');
+    return;
+  }
+
+  if (!confirm('Xóa danh mục này?')) {
     return;
   }
 
@@ -527,15 +542,26 @@ $(document).ready(function () {
 
   loadAdminPage();
 
-  $('#showProductFormBtn').on('click', function () {
+  $('#showProductFormBtn, #showProductForm').on('click', function () {
     editingProductId = null;
     $('#productForm')[0].reset();
     $('#productFormTitle').text('Thêm hàng hóa mới');
     renderCategoryOptions();
+
+    clearFieldErrors([
+      'code',
+      'name',
+      'categoryId',
+      'quantity',
+      'unit',
+      'price',
+      'minStock'
+    ]);
+
     $('#productFormBox').slideDown(180);
   });
 
-  $('#cancelProductFormBtn').on('click', function () {
+  $('#cancelProductFormBtn, #hideProductForm').on('click', function () {
     editingProductId = null;
     $('#productForm')[0].reset();
     $('#productFormBox').slideUp(160);
@@ -552,6 +578,14 @@ $(document).ready(function () {
   });
 
   $('#categoryForm').on('submit', saveCategory);
+
+  $('#resetCategoryForm').on('click', function () {
+    editingCategoryId = null;
+    $('#categoryFormTitle').text('Thêm danh mục');
+    $('#categorySubmitBtn').text('Thêm danh mục');
+    $('#categoryForm')[0].reset();
+    $('#categoryNameError').text('');
+  });
 
   $(document).on('click', '.edit-product', function () {
     const productId = $(this).attr('data-id');
