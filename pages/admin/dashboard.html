@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="vi">
   <head>
@@ -5,61 +6,246 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>StockPro Admin</title>
 
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    >
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../../assets/css/style.css">
+
+    <style>
+      :root {
+        --admin-bg: #f4f7fb;
+        --admin-card: #ffffff;
+        --admin-border: #e5e7eb;
+        --admin-text: #1f2937;
+        --admin-muted: #6b7280;
+        --admin-primary: #2563eb;
+        --admin-primary-soft: #eaf2ff;
+        --admin-danger: #dc2626;
+        --admin-warning: #f59e0b;
+        --admin-success: #16a34a;
+        --admin-radius: 16px;
+      }
+
+      body {
+        background: var(--admin-bg);
+        color: var(--admin-text);
+      }
+
+      .app-navbar {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: #ffffff;
+        border-bottom: 1px solid var(--admin-border);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+      }
+
+      .navbar-brand {
+        font-weight: 800;
+        color: var(--admin-primary);
+      }
+
+      .admin-layout {
+        min-height: calc(100vh - 72px);
+      }
+
+      .admin-sidebar {
+        position: sticky;
+        top: 88px;
+        border: 1px solid var(--admin-border);
+        border-radius: var(--admin-radius);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+      }
+
+      .admin-sidebar a {
+        display: block;
+        padding: 12px 14px;
+        color: var(--admin-muted);
+        font-weight: 700;
+        text-decoration: none;
+        border-radius: 12px;
+        transition: 0.2s ease;
+      }
+
+      .admin-sidebar a:hover,
+      .admin-sidebar a.active {
+        color: var(--admin-primary);
+        background: var(--admin-primary-soft);
+      }
+
+      .page-title {
+        font-weight: 800;
+      }
+
+      .stat-card,
+      .card {
+        border: 1px solid var(--admin-border);
+        border-radius: var(--admin-radius);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+      }
+
+      .stat-card .h3 {
+        font-weight: 800;
+        margin-bottom: 0;
+      }
+
+      .card-header {
+        border-bottom: 1px solid var(--admin-border);
+        border-radius: var(--admin-radius) var(--admin-radius) 0 0 !important;
+      }
+
+      .form-label {
+        font-weight: 700;
+        color: #374151;
+      }
+
+      .form-control,
+      .form-select {
+        min-height: 44px;
+        border-color: #d9dee8;
+        border-radius: 10px;
+      }
+
+      .form-control:focus,
+      .form-select:focus {
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 0.22rem rgba(37, 99, 235, 0.16);
+      }
+
+      .error-text {
+        min-height: 18px;
+        margin-top: 4px;
+        color: var(--admin-danger);
+        font-size: 0.875rem;
+      }
+
+      .product-image-box {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #eef2f7;
+        border: 1px solid var(--admin-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--admin-muted);
+        font-size: 0.75rem;
+      }
+
+      .product-image-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .table > :not(caption) > * > * {
+        padding: 14px 12px;
+      }
+
+      .table th {
+        white-space: nowrap;
+        color: #111827;
+      }
+
+      .table td {
+        vertical-align: middle;
+      }
+
+      .category-list-scroll {
+        max-height: 330px;
+        overflow-y: auto;
+      }
+
+      .loading-box {
+        display: none;
+      }
+
+      .section-anchor {
+        scroll-margin-top: 90px;
+      }
+
+      @media (max-width: 991.98px) {
+        .admin-sidebar {
+          position: static;
+        }
+
+        .admin-sidebar {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+      }
+
+      @media (max-width: 575.98px) {
+        .admin-sidebar {
+          grid-template-columns: 1fr;
+        }
+
+        .card-header.d-flex {
+          gap: 10px;
+          align-items: flex-start !important;
+          flex-direction: column;
+        }
+
+        .card-header .btn {
+          width: 100%;
+        }
+
+        .table {
+          min-width: 900px;
+        }
+      }
+    </style>
   </head>
 
   <body>
     <nav class="navbar app-navbar">
-      <div class="container-fluid">
+      <div class="container-fluid px-3 px-lg-4">
         <a class="navbar-brand" href="dashboard.html">StockPro Admin</a>
-        <a class="btn btn-outline-primary btn-sm" href="../../index.html">Quay lại</a>
+        <a class="btn btn-outline-primary btn-sm" href="../../index.html">Quay lại trang chính</a>
       </div>
     </nav>
 
     <main class="container-fluid py-4">
-      <div class="row g-4">
+      <div class="row g-4 admin-layout">
         <aside class="col-lg-2">
           <div class="card admin-sidebar p-2">
-            <a class="active" href="dashboard.html">Dashboard</a>
+            <a class="active" href="#dashboard">Dashboard</a>
             <a href="#products">Hàng hóa</a>
             <a href="#stock">Nhập / Xuất kho</a>
             <a href="#categories">Danh mục</a>
+            <a href="#reports">Báo cáo</a>
           </div>
         </aside>
 
-        <section class="col-lg-10">
+        <section class="col-lg-10" id="dashboard">
           <div class="mb-3">
             <p class="text-muted mb-1">Admin</p>
-            <h1 class="page-title h3">Quản trị kho hàng</h1>
+            <h1 class="page-title h3 mb-0">Quản trị kho hàng</h1>
           </div>
 
-          <section class="row g-3 mb-4">
+          <section class="row g-3 mb-4" aria-label="Thống kê quản trị kho">
             <div class="col-md-4">
-              <div class="card stat-card">
+              <div class="card stat-card h-100">
                 <div class="card-body">
-                  <div class="text-muted">Tổng hàng hóa</div>
+                  <div class="text-muted fw-semibold">Tổng hàng hóa</div>
                   <div id="adTotalProducts" class="h3">0</div>
                 </div>
               </div>
             </div>
 
             <div class="col-md-4">
-              <div class="card stat-card">
+              <div class="card stat-card h-100">
                 <div class="card-body">
-                  <div class="text-muted">Cảnh báo tồn thấp</div>
+                  <div class="text-muted fw-semibold">Cảnh báo tồn thấp</div>
                   <div id="adLowStock" class="h3 text-warning">0</div>
                 </div>
               </div>
             </div>
 
             <div class="col-md-4">
-              <div class="card stat-card">
+              <div class="card stat-card h-100">
                 <div class="card-body">
-                  <div class="text-muted">Giá trị kho</div>
+                  <div class="text-muted fw-semibold">Giá trị kho</div>
                   <div id="adInventoryValue" class="h3">0 đ</div>
                 </div>
               </div>
@@ -68,208 +254,207 @@
 
           <div class="loading-box alert alert-info">Đang tải dữ liệu...</div>
 
-          <section id="products" class="card mb-4">
+          <section id="products" class="card mb-4 section-anchor">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
               <strong>Quản lý hàng hóa</strong>
-              <button id="showProductFormBtn" class="btn btn-primary btn-sm">
-                Thêm hàng hóa
-              </button>
+              <button id="showProductFormBtn" class="btn btn-primary btn-sm" type="button">Thêm hàng hóa</button>
             </div>
 
             <div id="productFormBox" class="card-body border-bottom" style="display: none;">
               <h2 id="productFormTitle" class="h5 mb-3">Thêm hàng hóa mới</h2>
 
-              <form id="productForm" class="row g-3">
+              <form id="productForm" class="row g-3" autocomplete="off" novalidate>
                 <div class="col-md-3">
-                  <label class="form-label">Mã hàng</label>
-                  <input name="code" id="code" class="form-control" placeholder="SP001">
+                  <label class="form-label" for="code">Mã hàng</label>
+                  <input name="code" id="code" class="form-control" placeholder="SP001" maxlength="20" required>
                   <div id="codeError" class="error-text"></div>
                 </div>
 
                 <div class="col-md-5">
-                  <label class="form-label">Tên hàng</label>
-                  <input name="name" id="name" class="form-control" placeholder="Bàn phím Logitech">
+                  <label class="form-label" for="name">Tên hàng</label>
+                  <input name="name" id="name" class="form-control" placeholder="Nguồn máy tính 650W" maxlength="120" required>
                   <div id="nameError" class="error-text"></div>
                 </div>
 
                 <div class="col-md-4">
-                  <label class="form-label">Nhóm hàng</label>
-                  <select name="categoryId" id="categoryId" class="form-select"></select>
+                  <label class="form-label" for="categoryId">Nhóm hàng</label>
+                  <select name="categoryId" id="categoryId" class="form-select" required>
+                    <option value="">Chọn nhóm hàng</option>
+                  </select>
                   <div id="categoryIdError" class="error-text"></div>
                 </div>
 
                 <div class="col-md-2">
-                  <label class="form-label">Số lượng ban đầu</label>
-                  <input name="quantity" id="quantity" type="number" class="form-control">
+                  <label class="form-label" for="quantity">Số lượng ban đầu</label>
+                  <input name="quantity" id="quantity" type="number" inputmode="numeric" min="0" step="1" class="form-control" placeholder="0" required>
                   <div id="quantityError" class="error-text"></div>
                 </div>
 
                 <div class="col-md-2">
-                  <label class="form-label">Đơn vị</label>
-                  <input name="unit" id="unit" class="form-control" placeholder="cái">
+                  <label class="form-label" for="unit">Đơn vị</label>
+                  <input name="unit" id="unit" class="form-control" placeholder="Cái" maxlength="30" required>
                   <div id="unitError" class="error-text"></div>
                 </div>
 
                 <div class="col-md-3">
-                  <label class="form-label">Giá</label>
-                  <input name="price" id="price" type="number" class="form-control">
+                  <label class="form-label" for="price">Giá</label>
+                  <input name="price" id="price" type="number" inputmode="numeric" min="0" step="1" class="form-control" placeholder="500000" required>
                   <div id="priceError" class="error-text"></div>
                 </div>
 
                 <div class="col-md-2">
-                  <label class="form-label">Tồn tối thiểu</label>
-                  <input name="minStock" id="minStock" type="number" class="form-control">
+                  <label class="form-label" for="minStock">Tồn tối thiểu</label>
+                  <input name="minStock" id="minStock" type="number" inputmode="numeric" min="0" step="1" class="form-control" placeholder="5" required>
                   <div id="minStockError" class="error-text"></div>
                 </div>
 
                 <div class="col-md-3">
-                  <label class="form-label">Link ảnh</label>
-                  <input name="image" id="image" class="form-control">
+                  <label class="form-label" for="image">Link ảnh</label>
+                  <input name="image" id="image" type="url" class="form-control" placeholder="https://...">
+                  <div id="imageError" class="error-text"></div>
                 </div>
 
                 <div class="col-12">
-                  <label class="form-label">Mô tả</label>
-                  <textarea name="description" id="description" class="form-control"></textarea>
+                  <label class="form-label" for="description">Mô tả</label>
+                  <textarea name="description" id="description" class="form-control" rows="2" placeholder="Mô tả ngắn về sản phẩm"></textarea>
                 </div>
 
-                <div class="col-12">
-                  <button class="btn btn-primary">Lưu</button>
-                  <button id="cancelProductFormBtn" type="button" class="btn btn-outline-secondary">
-                    Hủy
-                  </button>
+                <div class="col-12 d-flex gap-2">
+                  <button id="productSubmitBtn" class="btn btn-primary" type="submit">Lưu</button>
+                  <button id="cancelProductFormBtn" type="button" class="btn btn-outline-secondary">Hủy</button>
                 </div>
               </form>
             </div>
 
             <div class="table-responsive">
-              <table class="table table-hover mb-0">
+              <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                   <tr>
-                    <th>Mã</th>
+                    <th>Ảnh / Mã</th>
                     <th>Tên</th>
                     <th>Nhóm</th>
-                    <th>Tồn</th>
-                    <th>Giá</th>
-                    <th>Min</th>
+                    <th class="text-end">Tồn</th>
+                    <th class="text-end">Giá</th>
+                    <th class="text-end">Min</th>
                     <th>Trạng thái</th>
-                    <th>Thao tác</th>
+                    <th class="text-end">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody id="adminProductBody"></tbody>
+                <tbody id="adminProductBody">
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Chưa có dữ liệu hàng hóa</td>
+                  </tr>
+                </tbody>
               </table>
             </div>
           </section>
 
-          <section id="stock" class="row g-4 mb-4">
+          <section id="stock" class="row g-4 mb-4 section-anchor">
             <div class="col-lg-6">
-              <div class="card">
+              <div class="card h-100">
                 <div class="card-header bg-white fw-semibold">Nhập kho</div>
                 <div class="card-body">
-                  <form id="importForm">
-                    <select name="productId" id="importProductId" class="form-select mb-1"></select>
+                  <form id="importForm" autocomplete="off" novalidate>
+                    <label class="form-label" for="importProductId">Hàng hóa</label>
+                    <select name="productId" id="importProductId" class="form-select mb-1" required>
+                      <option value="">Chọn hàng hóa</option>
+                    </select>
                     <div id="importProductIdError" class="error-text"></div>
 
-                    <input
-                      name="quantity"
-                      id="importQuantity"
-                      type="number"
-                      class="form-control mb-1"
-                      placeholder="Số lượng nhập"
-                    >
+                    <label class="form-label mt-2" for="importQuantity">Số lượng nhập</label>
+                    <input name="quantity" id="importQuantity" type="number" inputmode="numeric" min="1" step="1" class="form-control mb-1" placeholder="Số lượng nhập" required>
                     <div id="importQuantityError" class="error-text"></div>
 
-                    <input name="note" class="form-control mb-3" placeholder="Ghi chú">
+                    <label class="form-label mt-2" for="importNote">Ghi chú</label>
+                    <input name="note" id="importNote" class="form-control mb-3" placeholder="Ghi chú nhập kho">
 
-                    <button class="btn btn-primary w-100">Xác nhận nhập</button>
+                    <button class="btn btn-primary w-100" type="submit">Xác nhận nhập</button>
                   </form>
                 </div>
               </div>
             </div>
 
             <div class="col-lg-6">
-              <div class="card">
+              <div class="card h-100">
                 <div class="card-header bg-white fw-semibold">Xuất kho</div>
                 <div class="card-body">
-                  <form id="exportForm">
-                    <select name="productId" id="exportProductId" class="form-select mb-1"></select>
+                  <form id="exportForm" autocomplete="off" novalidate>
+                    <label class="form-label" for="exportProductId">Hàng hóa</label>
+                    <select name="productId" id="exportProductId" class="form-select mb-1" required>
+                      <option value="">Chọn hàng hóa</option>
+                    </select>
                     <div id="exportProductIdError" class="error-text"></div>
 
-                    <input
-                      name="quantity"
-                      id="exportQuantity"
-                      type="number"
-                      class="form-control mb-1"
-                      placeholder="Số lượng xuất"
-                    >
+                    <label class="form-label mt-2" for="exportQuantity">Số lượng xuất</label>
+                    <input name="quantity" id="exportQuantity" type="number" inputmode="numeric" min="1" step="1" class="form-control mb-1" placeholder="Số lượng xuất" required>
                     <div id="exportQuantityError" class="error-text"></div>
 
-                    <input name="note" class="form-control mb-3" placeholder="Ghi chú">
+                    <label class="form-label mt-2" for="exportNote">Ghi chú</label>
+                    <input name="note" id="exportNote" class="form-control mb-3" placeholder="Ghi chú xuất kho">
 
-                    <button class="btn btn-outline-danger w-100">Xác nhận xuất</button>
+                    <button class="btn btn-outline-danger w-100" type="submit">Xác nhận xuất</button>
                   </form>
                 </div>
               </div>
             </div>
           </section>
 
-          <section id="categories" class="row g-4">
+          <section id="categories" class="row g-4 section-anchor">
             <div class="col-lg-5">
-              <div class="card">
-                <div id="categoryFormTitle" class="card-header bg-white fw-semibold">
-                  Thêm danh mục
-                </div>
+              <div class="card h-100">
+                <div id="categoryFormTitle" class="card-header bg-white fw-semibold">Thêm danh mục</div>
 
                 <div class="card-body">
-                  <form id="categoryForm">
-                    <input
-                      id="categoryName"
-                      class="form-control mb-1"
-                      placeholder="Tên nhóm hàng"
-                    >
+                  <form id="categoryForm" autocomplete="off" novalidate>
+                    <label class="form-label" for="categoryName">Tên nhóm hàng</label>
+                    <input id="categoryName" name="name" class="form-control mb-1" placeholder="Thiết bị văn phòng" maxlength="100" required>
                     <div id="categoryNameError" class="error-text mb-2"></div>
 
-                    <input
-                      id="categoryDescription"
-                      class="form-control mb-3"
-                      placeholder="Mô tả"
-                    >
+                    <label class="form-label" for="categoryDescription">Mô tả</label>
+                    <input id="categoryDescription" name="description" class="form-control mb-3" placeholder="Mô tả danh mục">
 
-                    <button id="categorySubmitBtn" class="btn btn-primary">
-                      Thêm danh mục
-                    </button>
+                    <button id="categorySubmitBtn" class="btn btn-primary w-100" type="submit">Thêm danh mục</button>
                   </form>
                 </div>
               </div>
             </div>
 
             <div class="col-lg-7">
-              <div class="card">
+              <div class="card h-100">
                 <div class="card-header bg-white fw-semibold">Danh mục hiện có</div>
-                <ul id="categoryList" class="list-group list-group-flush"></ul>
+                <ul id="categoryList" class="list-group list-group-flush category-list-scroll">
+                  <li class="list-group-item text-muted">Chưa có dữ liệu danh mục</li>
+                </ul>
               </div>
             </div>
           </section>
 
-          <section class="card mt-4">
+          <section id="reports" class="card mt-4 section-anchor">
             <div class="card-header bg-white fw-semibold">Cảnh báo hàng tồn kho thấp</div>
-            <div id="lowStockAlertList" class="list-group list-group-flush"></div>
+            <div id="lowStockAlertList" class="list-group list-group-flush">
+              <div class="list-group-item text-muted">Chưa có cảnh báo</div>
+            </div>
           </section>
 
           <section class="card mt-4">
             <div class="card-header bg-white fw-semibold">Giao dịch gần đây</div>
 
             <div class="table-responsive">
-              <table class="table mb-0">
+              <table class="table align-middle mb-0">
                 <thead class="table-light">
                   <tr>
                     <th>Thời gian</th>
                     <th>Hàng hóa</th>
                     <th>Loại</th>
-                    <th>SL</th>
+                    <th class="text-end">SL</th>
                     <th>Ghi chú</th>
                   </tr>
                 </thead>
-                <tbody id="adminTransactionBody"></tbody>
+                <tbody id="adminTransactionBody">
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-4">Chưa có giao dịch</td>
+                  </tr>
+                </tbody>
               </table>
             </div>
           </section>

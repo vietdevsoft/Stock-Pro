@@ -1,49 +1,14 @@
-# StockPro - Quản lý kho hàng
+# StockPro fixed v3
 
-Dự án frontend môn JavaScript, sử dụng:
+Bản này fix lỗi thao tác DELETE/PUT với MockAPI.
 
-- HTML/CSS
-- JavaScript thuần
-- Fetch API
-- jQuery
-- Bootstrap 5
-- MockAPI.io
+## Điểm sửa chính
 
-## Trang chính
+- Không dùng id giả để gọi `DELETE /Products/:id` hoặc `DELETE /Categories/:id`.
+- Nếu bản ghi không có id thật từ MockAPI, nút sửa/xóa sẽ bị disabled để tránh gọi nhầm vào URL không hợp lệ.
+- Nếu danh mục đang có sản phẩm sử dụng, không cho xóa danh mục.
+- Giữ nguyên `config.js` theo yêu cầu.
 
-- `index.html`: Public xem tồn kho, tìm kiếm, lọc nhóm hàng, xem nhanh lịch sử.
-- `history.html`: Public xem toàn bộ lịch sử nhập/xuất.
-- `pages/admin/dashboard.html`: Admin quản lý hàng hóa, danh mục, nhập kho, xuất kho.
+## Lưu ý MockAPI
 
-## Logic tồn kho
-
-Dữ liệu được lấy từ 2 bảng chính:
-
-- `Products`: thông tin hàng hóa và số lượng ban đầu.
-- `Transactions`: lịch sử nhập/xuất.
-
-Tồn kho hiện tại được tính bằng JavaScript:
-
-```js
-tồn kho = số lượng ban đầu + tổng nhập - tổng xuất
-```
-
-Hàm tính nằm trong file:
-
-```txt
-assets/js/utils.js
-```
-
-Tên hàm:
-
-```js
-calculateCurrentStock(product, transactions)
-```
-
-## API
-
-API được khai báo trong:
-
-```txt
-assets/js/config.js
-```
+Các record muốn sửa/xóa trực tiếp phải có field `id` thật do MockAPI sinh. Nếu phần Resource Data bạn nhập không trả về `id`, hãy tạo lại dữ liệu bằng POST hoặc kiểm tra schema resource có trường `id` kiểu Object ID.

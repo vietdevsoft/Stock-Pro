@@ -13,9 +13,9 @@ async function loadPublicData() {
   try {
     const data = await loadAllStockData();
 
+    publicProducts = data.products;
     publicCategories = data.categories;
     publicTransactions = data.transactions;
-    publicProducts = applyCurrentStockToProducts(data.products, publicTransactions);
 
     renderCategoryFilter();
     renderPublicProducts();
@@ -40,7 +40,7 @@ function renderCategoryFilter() {
 
   for (let i = 0; i < publicCategories.length; i++) {
     const category = publicCategories[i];
-    html += `<option value="${category._categoryId}">${category.name}</option>`;
+    html += `<option value="${category.id}">${category.name}</option>`;
   }
 
   select.innerHTML = html;
@@ -60,7 +60,7 @@ function isProductMatched(product, keyword, categoryId) {
   const productName = String(product.name || '').toLowerCase();
   const productCode = String(product.code || '').toLowerCase();
 
-  const matchKeyword = productName.includes(keyword) || productCode.includes(keyword);
+  const matchKeyword = keyword === '' || productName.includes(keyword) || productCode.includes(keyword);
   const matchCategory = categoryId === '' || String(product.categoryId) === String(categoryId);
 
   return matchKeyword && matchCategory;
@@ -72,10 +72,8 @@ function filterProducts() {
   const result = [];
 
   for (let i = 0; i < publicProducts.length; i++) {
-    const product = publicProducts[i];
-
-    if (isProductMatched(product, keyword, categoryId)) {
-      result.push(product);
+    if (isProductMatched(publicProducts[i], keyword, categoryId)) {
+      result.push(publicProducts[i]);
     }
   }
 
@@ -123,7 +121,7 @@ function renderPublicProducts() {
   const filteredProducts = filterProducts();
 
   if (filteredProducts.length === 0) {
-    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Không có dữ liệu phù hợp</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Không có dữ liệu phù hợp</td></tr>';
     return;
   }
 
@@ -163,7 +161,7 @@ function renderPublicTransactions() {
     return;
   }
 
-  const latestTransactions = publicTransactions.slice().reverse().slice(0, 50);
+  const latestTransactions = sortByNewest(publicTransactions).slice(0, 50);
 
   if (latestTransactions.length === 0) {
     tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Chưa có giao dịch</td></tr>';
