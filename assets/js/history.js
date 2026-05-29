@@ -12,8 +12,8 @@ async function loadHistoryPage() {
   try {
     const data = await loadAllStockData();
 
+    historyProducts = data.products;
     historyTransactions = data.transactions;
-    historyProducts = applyCurrentStockToProducts(data.products, historyTransactions);
 
     renderFullHistoryTable();
   } catch (error) {
@@ -25,13 +25,7 @@ async function loadHistoryPage() {
 }
 
 function getSortedTransactions() {
-  const copiedTransactions = historyTransactions.slice();
-
-  copiedTransactions.sort(function (a, b) {
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
-
-  return copiedTransactions;
+  return sortByNewest(historyTransactions);
 }
 
 function getTransactionTypeInfo(type) {
@@ -56,9 +50,7 @@ function createHistoryRow(transaction) {
     <tr>
       <td>${formatDateTime(transaction.createdAt)}</td>
       <td>${productName}</td>
-      <td>
-        <span class="badge text-bg-${typeInfo.badgeClass}">${typeInfo.label}</span>
-      </td>
+      <td><span class="badge text-bg-${typeInfo.badgeClass}">${typeInfo.label}</span></td>
       <td>${transaction.quantity}</td>
       <td>${transaction.note || ''}</td>
     </tr>
@@ -77,9 +69,7 @@ function renderFullHistoryTable() {
   if (sortedTransactions.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="5" class="text-center text-muted py-4">
-          Chưa có giao dịch.
-        </td>
+        <td colspan="5" class="text-center text-muted py-4">Chưa có giao dịch.</td>
       </tr>
     `;
     return;

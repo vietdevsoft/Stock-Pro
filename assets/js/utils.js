@@ -1,26 +1,70 @@
 // =============================
 // FILE: utils.js
 // Mục đích: Chứa các hàm tiện ích dùng chung ở nhiều trang.
-// Ghi chú quan trọng:
-// - API hiện tại có Products/Categories thiếu id.
-// - Vì vậy frontend tạo thêm _selectId, _legacyId, _categoryId để dùng nội bộ.
 // =============================
 
 function qs(id) {
   return document.getElementById(id);
 }
 
+function hasValue(value) {
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function isBadText(value) {
+  const text = String(value || '').trim();
+  return text === '' || text === 'NaN' || text.includes('undefined') || text.includes('null');
+}
+
+function cleanText(value, fallback = '') {
+  if (isBadText(value)) {
+    return fallback;
+  }
+
+  return String(value).trim();
+}
+
+function toSafeNumber(value, fallback = 0) {
+  const numberValue = Number(value);
+
+  if (Number.isFinite(numberValue)) {
+    return numberValue;
+  }
+
+  return fallback;
+}
+
+function toSafeInteger(value, fallback = 0) {
+  const numberValue = Number(value);
+
+  if (Number.isInteger(numberValue)) {
+    return numberValue;
+  }
+
+  if (Number.isFinite(numberValue)) {
+    return Math.floor(numberValue);
+  }
+
+  return fallback;
+}
+
 function money(value) {
-  const numberValue = Number(value || 0);
+  const numberValue = toSafeNumber(value, 0);
   return numberValue.toLocaleString('vi-VN') + ' đ';
 }
 
 function dateTime(value) {
-  if (!value) {
+  if (!hasValue(value)) {
     return '';
   }
 
-  return new Date(value).toLocaleString('vi-VN');
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleString('vi-VN');
 }
 
 function formatDateTime(value) {
@@ -63,63 +107,10 @@ function showToast(message, type = 'success') {
   toast.show();
 }
 
-function hasValue(value) {
-  return value !== undefined && value !== null && String(value).trim() !== '';
-}
-
-function normalizeCategories(rawCategories) {
-  const result = [];
-
-  for (let i = 0; i < rawCategories.length; i++) {
-    const category = rawCategories[i];
-
-    result.push({
-      ...category,
-
-      // Nếu API không có id thì lấy số thứ tự 1, 2, 3...
-      // Nhờ đó product.categoryId = 1 vẫn map được với danh mục đầu tiên.
-      _categoryId: hasValue(category.id) ? String(category.id) : String(i + 1),
-      _canDeleteRemote: hasValue(category.id)
-    });
-  }
-
-  return result;
-}
-
-function normalizeProducts(rawProducts) {
-  const result = [];
-
-  for (let i = 0; i < rawProducts.length; i++) {
-    const product = rawProducts[i];
-
-    result.push({
-      ...product,
-
-      // _selectId chỉ dùng cho <select>, không gửi lên API.
-      _selectId: String(i),
-
-      // _legacyId dùng để khớp với transaction cũ.
-      // Vì Transactions hiện đang lưu productId = 1, 2, 3...
-      _legacyId: String(i + 1),
-
-      // _apiId dùng khi record có id thật để PUT/DELETE.
-      _apiId: hasValue(product.id) ? String(product.id) : ''
-    });
-  }
-
-  return result;
-}
-
 function getCategoryName(categories, categoryId) {
   for (let i = 0; i < categories.length; i++) {
-    const category = categories[i];
-
-    if (String(category._categoryId) === String(categoryId)) {
-      return category.name;
-    }
-
-    if (hasValue(category.id) && String(category.id) === String(categoryId)) {
-      return category.name;
+    if (String(categories[i].id) === String(categoryId)) {
+      return categories[i].name;
     }
   }
 
@@ -127,95 +118,27 @@ function getCategoryName(categories, categoryId) {
 }
 
 function getProductImage(product) {
-  if (product.image) {
-    return product.image;
-  }
-
-  if (product.imageUrl) {
-    return product.imageUrl;
-  }
-
-  return PLACEHOLDER_IMG;
-}
-
-function getProductStockKey(product) {
-  // Sản phẩm cũ trong API không có id, nên dùng số thứ tự legacy 1,2,3...
-  // Sản phẩm mới có id thật, nhưng có thể trùng với legacy id.
-  // Vì vậy ta thêm tiền tố p- để tránh nhầm với transaction cũ.
-  if (product._apiId) {
-    return 'p-' + product._apiId;
-  }
-
-  return product._legacyId;
-}
-
-function isSameProductTransaction(product, transaction) {
-  const transactionProductId = String(transaction.productId);
-
-  if (transactionProductId === getProductStockKey(product)) {
-    return true;
-  }
-
-  // Transaction cũ đang lưu productId = 1, 2, 3...
-  // Chỉ cho sản phẩm thiếu id thật dùng cách match legacy này.
-  if (!product._apiId && transactionProductId === String(product._legacyId)) {
-    return true;
-  }
-
-  return false;
-}
-
-function calculateCurrentStock(product, transactions) {
-  let currentQuantity = Number(product.quantity || 0);
-
-  for (let i = 0; i < transactions.length; i++) {
-    const transaction = transactions[i];
-
-    if (!isSameProductTransaction(product, transaction)) {
-      continue;
-    }
-
-    const quantity = Number(transaction.quantity || 0);
-
-    if (transaction.type === 'import') {
-      currentQuantity += quantity;
-    }
-
-    if (transaction.type === 'export') {
-      currentQuantity -= quantity;
-    }
-  }
-
-  return currentQuantity;
-}
-
-function getDisplayQuantity(product) {
-  if (hasValue(product.currentQuantity)) {
-    return Number(product.currentQuantity);
-  }
-
-  return Number(product.quantity || 0);
+  const image = cleanText(product.image || product.imageUrl, '');
+  return image || PLACEHOLDER_IMG;
 }
 
 function getProductNameById(products, productId) {
   for (let i = 0; i < products.length; i++) {
-    const product = products[i];
-
-    if (String(productId) === getProductStockKey(product)) {
-      return product.name;
-    }
-
-    if (!product._apiId && String(productId) === String(product._legacyId)) {
-      return product.name;
+    if (String(products[i].id) === String(productId)) {
+      return products[i].name;
     }
   }
 
-  return productId;
+  return productId ? 'Sản phẩm #' + productId : 'Không rõ sản phẩm';
+}
+
+function getDisplayQuantity(product) {
+  return toSafeInteger(product.quantity, 0);
 }
 
 function isLowStock(product) {
   const quantity = getDisplayQuantity(product);
-  const minStock = Number(product.minStock || 0);
+  const minStock = toSafeInteger(product.minStock, 0);
 
   return quantity <= minStock;
 }
@@ -224,27 +147,27 @@ function calcInventoryValue(products) {
   let total = 0;
 
   for (let i = 0; i < products.length; i++) {
-    const product = products[i];
-    const quantity = getDisplayQuantity(product);
-    const price = Number(product.price || 0);
-
-    total += quantity * price;
+    total += getDisplayQuantity(products[i]) * toSafeNumber(products[i].price, 0);
   }
 
   return total;
 }
 
-function applyCurrentStockToProducts(products, transactions) {
-  const result = [];
+function sortByNewest(items) {
+  const copiedItems = items.slice();
 
-  for (let i = 0; i < products.length; i++) {
-    const product = products[i];
+  copiedItems.sort(function (a, b) {
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
 
-    result.push({
-      ...product,
-      currentQuantity: calculateCurrentStock(product, transactions)
-    });
+  return copiedItems;
+}
+
+function buildItemUrl(resourceUrl, itemId) {
+  if (!hasValue(itemId)) {
+    throw new Error('Thiếu id bản ghi. Không được gọi DELETE/PUT vào URL gốc.');
   }
 
-  return result;
+  const cleanResourceUrl = String(resourceUrl).replace(/\/+$/, '');
+  return cleanResourceUrl + '/' + encodeURIComponent(String(itemId));
 }

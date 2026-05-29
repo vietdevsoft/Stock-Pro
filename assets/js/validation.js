@@ -31,7 +31,7 @@ function clearProductFormErrors() {
 }
 
 function validateProductCode(code) {
-  return /^SP\d{3,}$/i.test(code);
+  return /^SP\d{3,}$/i.test(String(code || '').trim());
 }
 
 function validateProductForm(form) {
@@ -72,7 +72,7 @@ function validateProductForm(form) {
     isValid = false;
   }
 
-  if (isNaN(price) || price <= 0) {
+  if (!Number.isFinite(price) || price <= 0) {
     setFieldError('price', 'Giá tiền phải lớn hơn 0.');
     isValid = false;
   }
