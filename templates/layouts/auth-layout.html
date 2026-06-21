@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block body_attrs %}class="auth-page" data-initial-auth="{{ initial_auth | default('login') }}"{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', path='css/auth.css') }}">{% endblock %}
+{% block body %}
+    {% include "components/header.html" %}
+    {% include "components/auth-stage.html" %}
+{% endblock %}

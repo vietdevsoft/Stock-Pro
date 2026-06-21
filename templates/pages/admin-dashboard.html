@@ -1,0 +1,201 @@
+{% extends "layouts/admin-layout.html" %}
+
+{% block title %}Stock Pro Admin Dashboard{% endblock %}
+
+{% block content %}
+
+<section class="page-hero fade-show">
+<div>
+<span class="section-kicker">STOCK PRO ADMIN</span>
+<h1 id="pageTitle">Tổng quan quản trị</h1>
+<p id="pageDesc">Theo dõi tình trạng kho hàng, giao dịch nhập xuất và hiệu suất vận hành.</p>
+</div>
+<div class="hero-actions">
+<button class="btn btn-ghost" id="collapseBtn">Thu gọn sidebar</button>
+</div>
+</section>
+<!-- Overview -->
+<section class="content-section active" id="overview">
+<div class="stat-grid" id="overviewStats"></div>
+<div class="dashboard-grid">
+<article class="panel chart-panel tilt-card">
+<div class="panel-head">
+<div>
+<span class="section-kicker">30 DAYS</span>
+<h2>Biểu đồ 30 ngày gần nhất</h2>
+</div>
+<div class="legend-row">
+<span><i class="legend-in"></i>Nhập</span>
+<span><i class="legend-out"></i>Xuất</span>
+<span><i class="legend-value"></i>Giá trị</span>
+</div>
+</div>
+<div class="chart-wrap"><canvas height="360" id="stockChart" width="900"></canvas></div>
+</article>
+<article class="panel monthly-panel tilt-card">
+<div class="panel-head">
+<div>
+<span class="section-kicker">2026</span>
+<h2>Thống kê theo tháng</h2>
+</div>
+</div>
+<div class="month-bars" id="monthBars"></div>
+</article>
+</div>
+</section>
+<!-- Products -->
+<section class="content-section" id="products">
+<div class="panel">
+<div class="panel-head split">
+<div>
+<span class="section-kicker">INVENTORY LIST</span>
+<h2>Tất cả mặt hàng</h2>
+</div>
+<button class="btn btn-primary" data-section-jump="inventory-actions">+ Thêm hàng hóa</button>
+</div>
+<div class="filter-bar">
+<input id="productSearch" placeholder="Tìm theo mã hoặc tên sản phẩm..." type="search"/>
+<select id="categoryFilter"></select>
+<select id="statusFilter">
+<option value="all">Tất cả trạng thái</option>
+<option value="Còn hàng">Còn hàng</option>
+<option value="Sắp hết hàng">Sắp hết hàng</option>
+<option value="Hết hàng">Hết hàng</option>
+</select>
+<button class="btn btn-soft" id="resetProductFilters">Làm mới</button>
+</div>
+<div class="table-wrap">
+<table class="admin-table product-table">
+<thead>
+<tr>
+<th>Ảnh</th><th>Mã</th><th>Tên sản phẩm</th><th>Nhóm hàng</th><th>Còn tồn</th><th>Đã xuất</th><th>Tồn tối thiểu</th><th>Đơn vị</th><th>Đơn giá</th><th>Trạng thái</th><th>Thao tác</th>
+</tr>
+</thead>
+<tbody id="productTableBody"></tbody>
+</table>
+<div class="mobile-card-list" id="productCardList"></div>
+</div>
+<div class="pagination"><button>‹</button><span>Trang 1 / 3</span><button>›</button></div>
+</div>
+</section>
+<!-- Inventory actions: add/import/export -->
+<section class="content-section" id="inventory-actions">
+<div class="inventory-action-layout">
+<article class="panel form-panel inventory-add-panel">
+<span class="section-kicker">CREATE PRODUCT</span>
+<h2>Thêm hàng hóa mới</h2>
+<p class="panel-desc">Tạo sản phẩm mới, khai báo nhóm hàng, số lượng ban đầu và ngưỡng tồn tối thiểu.</p>
+<form class="admin-form product-form compact-product-form" id="addProductForm" novalidate="">
+<div class="form-grid two-col">
+<label>Mã sản phẩm<input name="code" placeholder="VD: SP005"/></label>
+<label>Tên sản phẩm<input name="name" placeholder="VD: Màn hình Dell 24 inch"/></label>
+<label>Nhóm sản phẩm<select id="addCategorySelect" name="category"></select></label>
+<label>Số lượng<input min="0" name="quantity" placeholder="0" type="number"/></label>
+<label>Đơn vị<select name="unit"><option>Cái</option><option>Bộ</option><option>Hộp</option><option>Chiếc</option><option>Kg</option><option>Mét</option></select></label>
+<label>Đơn giá<input min="0" name="price" placeholder="0" type="number"/></label>
+<label>Tồn tối thiểu<input min="0" name="minStock" placeholder="0" type="number"/></label>
+<label>Link ảnh<input id="imageUrl" name="image" placeholder="https://images.unsplash.com/..."/></label>
+</div>
+<label>Mô tả<textarea name="description" placeholder="Mô tả ngắn về sản phẩm..."></textarea></label>
+<div class="preview-box compact-preview">
+<img alt="Preview sản phẩm" id="imagePreview" src="https://placehold.co/320x180/f7f3e8/0b1730?text=Preview"/>
+<p>Ảnh preview sẽ cập nhật khi nhập link hợp lệ.</p>
+</div>
+<div class="form-actions"><button class="btn btn-primary" type="submit">Thêm hàng hóa</button><button class="btn btn-soft" type="reset">Làm mới form</button></div>
+</form>
+</article>
+<article class="panel stock-action-panel">
+<div class="panel-head split"><div><span class="section-kicker">STOCK FLOW</span><h2>Nhập / Xuất kho</h2><p class="panel-desc">Cập nhật tồn kho và ghi nhận lịch sử giao dịch tự động.</p></div></div>
+<div class="tab-switch"><button class="stock-tab active" data-stock-tab="import">Nhập kho</button><button class="stock-tab" data-stock-tab="export">Xuất kho</button></div>
+<div class="stock-tabs">
+<form class="admin-form stock-form active" id="importForm" novalidate=""></form>
+<form class="admin-form stock-form" id="exportForm" novalidate=""></form>
+</div>
+</article>
+</div>
+</section>
+<!-- Categories -->
+<section class="content-section" id="categories">
+<div class="category-layout">
+<article class="panel form-panel">
+<span class="section-kicker">CATEGORY</span>
+<h2>Thêm nhóm hàng</h2>
+<form class="admin-form" id="categoryForm" novalidate="">
+<label>Tên nhóm hàng<input name="name" placeholder="VD: Thiết bị lưu trữ"/></label>
+<label>Mô tả<textarea name="description" placeholder="Mô tả nhóm hàng..."></textarea></label>
+<button class="btn btn-primary" type="submit">Thêm nhóm hàng</button>
+</form>
+</article>
+<article class="panel">
+<span class="section-kicker">CURRENT CATEGORIES</span>
+<h2>Danh mục hiện có</h2>
+<div class="category-list" id="categoryList"></div>
+</article>
+</div>
+</section>
+<!-- Transactions -->
+<section class="content-section" id="transactions">
+<div class="panel">
+<div class="panel-head split"><div><span class="section-kicker">TRANSACTION LOG</span><h2>Lịch sử giao dịch</h2></div></div>
+<div class="filter-bar">
+<input id="transactionSearch" placeholder="Tìm mã hoặc tên sản phẩm..." type="search"/>
+<select id="transactionTypeFilter"><option value="all">Tất cả loại</option><option>Nhập kho</option><option>Xuất kho</option></select>
+<input id="transactionDateFilter" type="date"/>
+</div>
+<div class="table-wrap">
+<table class="admin-table">
+<thead><tr><th>Thời gian</th><th>Mã</th><th>Tên sản phẩm</th><th>Loại</th><th>Số lượng</th><th>Đơn giá</th><th>Thành tiền</th><th>Ghi chú</th></tr></thead>
+<tbody id="transactionTableBody"></tbody>
+</table>
+<div class="mobile-card-list" id="transactionCardList"></div>
+</div>
+<div class="pagination"><button>‹</button><span>Trang 1 / 2</span><button>›</button></div>
+</div>
+</section>
+<!-- Settings -->
+<section class="content-section" id="settings">
+<div class="settings-layout">
+<article class="panel form-panel">
+<span class="section-kicker">WEBSITE IDENTITY</span>
+<h2>Cấu hình website</h2>
+<form class="admin-form" id="websiteForm">
+<label>Tên website<input name="siteName" value="Stock Pro"/></label>
+<label>Link icon<input id="iconInput" name="icon" value="https://placehold.co/80x80/163b59/ffffff?text=SP"/></label>
+<label>Link logo<input id="logoInput" name="logo" value="https://placehold.co/240x80/163b59/ffffff?text=Stock+Pro"/></label>
+<label>Màu chủ đạo<input name="color" type="color" value="#163b59"/></label>
+<label>Mô tả ngắn<textarea name="desc">Nền tảng quản lý kho hàng và bán sản phẩm trực tuyến.</textarea></label>
+<div class="identity-preview"><img alt="Icon preview" id="iconPreview"/><img alt="Logo preview" id="logoPreview"/></div>
+<button class="btn btn-primary" type="submit">Lưu cấu hình</button>
+</form>
+</article>
+<article class="panel user-admin-panel">
+<span class="section-kicker">USER MANAGEMENT</span>
+<h2>Quản lý tài khoản</h2>
+<div class="mini-stat-grid" id="userStats"></div>
+<div class="filter-bar">
+<input id="userSearch" placeholder="Tìm họ tên, email, số điện thoại..." type="search"/>
+<select id="userRoleFilter"><option value="all">Tất cả cấp bậc</option><option>User</option><option>Quản lý</option><option>Admin</option></select>
+<select id="userStatusFilter"><option value="all">Tất cả trạng thái</option><option>Đã xác thực</option><option>Chưa xác thực</option><option>Bị khóa</option></select>
+</div>
+<div class="table-wrap compact-table">
+<table class="admin-table user-table">
+<thead><tr><th>Họ và tên</th><th>Email</th><th>Số điện thoại</th><th>Ngày tạo</th><th>Cấp bậc</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+<tbody id="userTableBody"></tbody>
+</table>
+<div class="mobile-card-list" id="userCardList"></div>
+</div>
+</article>
+</div>
+</section>
+
+<div class="modal-backdrop" id="modalBackdrop">
+<div class="confirm-modal">
+<button class="modal-close" id="modalClose">×</button>
+<span class="modal-icon">!</span>
+<h3 id="modalTitle">Xác nhận thao tác</h3>
+<p id="modalMessage">Bạn có chắc muốn thực hiện thao tác này?</p>
+<div class="modal-actions"><button class="btn btn-soft" id="modalCancel">Hủy</button><button class="btn btn-danger" id="modalConfirm">Xác nhận</button></div>
+</div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+{% endblock %}

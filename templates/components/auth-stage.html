@@ -1,0 +1,199 @@
+<main class="auth-shell">
+        <div class="container">
+            <a href="/" class="auth-back">← Quay lại trang chủ</a>
+
+            <!-- Animated auth system -->
+            <section class="auth-stage" id="authStage" aria-label="Đăng nhập, đăng ký và quên mật khẩu Stock Pro">
+                <!-- Moving visual overlay -->
+                <aside class="auth-visual-panel" aria-hidden="true">
+                    <div class="visual-orb visual-orb-one"></div>
+                    <div class="visual-orb visual-orb-two"></div>
+
+                    <div class="visual-content visual-login-content">
+                        <span class="eyebrow light">Stock Pro Login</span>
+                        <h1>Chào mừng trở lại</h1>
+                        <p>Đăng nhập để tiếp tục theo dõi sản phẩm, quản lý tài khoản và kiểm tra lịch sử mua hàng.</p>
+                        <button type="button" class="btn btn-outline visual-switch" data-auth-switch="register">Tạo tài khoản mới</button>
+                    </div>
+
+                    <div class="visual-content visual-register-content">
+                        <span class="eyebrow light">Stock Pro Register</span>
+                        <h1>Bắt đầu với Stock Pro</h1>
+                        <p>Tạo tài khoản để mua sản phẩm, lưu thông tin cá nhân và sử dụng các chính sách hỗ trợ minh bạch.</p>
+                        <button type="button" class="btn btn-outline visual-switch" data-auth-switch="login">Tôi đã có tài khoản</button>
+                    </div>
+
+                    <div class="visual-content visual-forgot-content">
+                        <span class="eyebrow light">Stock Pro Recovery</span>
+                        <h1>Khôi phục truy cập</h1>
+                        <p>Nhập email đã đăng ký để nhận hướng dẫn đặt lại mật khẩu và tiếp tục sử dụng Stock Pro.</p>
+                        <button type="button" class="btn btn-outline visual-switch" data-auth-switch="login">Quay lại đăng nhập</button>
+                    </div>
+
+                    <div class="auth-floating-card card-one">
+                        <strong>1.200+</strong>
+                        <span>Sản phẩm đang quản lý</span>
+                    </div>
+                    <div class="auth-floating-card card-two">
+                        <strong>24/7</strong>
+                        <span>Hỗ trợ người dùng</span>
+                    </div>
+                </aside>
+
+                <!-- Login form -->
+                <section class="auth-panel login-panel" aria-labelledby="loginTitle">
+                    <div class="auth-form-head">
+                        <span class="eyebrow">Đăng nhập</span>
+                        <h2 id="loginTitle">Truy cập tài khoản</h2>
+                        <p>Nhập thông tin để sử dụng hệ thống quản lý kho và mua hàng trực tuyến.</p>
+                    </div>
+
+                    <form class="auth-form" data-auth-form="login">
+                        <div class="form-group">
+                            <label for="loginEmail">Email hoặc số điện thoại</label>
+                            <input class="form-control" type="text" id="loginEmail" name="email" placeholder="VD: hvsoft.contact@gmail.com" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="loginPassword">Mật khẩu</label>
+                            <div class="password-field">
+                                <input class="form-control" type="password" id="loginPassword" name="password" placeholder="Nhập mật khẩu" required>
+                                <button type="button" class="password-toggle" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="loginCaptcha">Mã xác nhận</label>
+                            <div class="captcha-box">
+                                <img data-captcha-code src="/captcha" alt="Captcha"class="captcha-image">
+                                <button type="button" class="captcha-refresh" data-captcha-refresh aria-label="Đổi mã captcha">↻</button>
+                                <input class="form-control" type="text" id="loginCaptcha" name="captcha" placeholder="Nhập captcha" required>
+                            </div>
+                        </div>
+
+                        <div class="form-options">
+                            <label class="check-line">
+                                <input type="checkbox" name="remember">
+                                <span>Ghi nhớ đăng nhập</span>
+                            </label>
+                            <button type="button" class="text-link link-button" data-auth-switch="forgot">Quên mật khẩu?</button>
+                        </div>
+
+                        <p class="form-message" data-form-message></p>
+
+                        <button type="submit" class="btn btn-primary auth-submit">Đăng nhập</button>
+
+                        <p class="auth-switch">Chưa có tài khoản? <button type="button" data-auth-switch="register">Đăng ký ngay</button></p>
+                    </form>
+                </section>
+
+
+                <!-- Forgot password form -->
+                <section class="auth-panel forgot-panel" aria-labelledby="forgotTitle">
+                    <div class="auth-form-head">
+                        <span class="eyebrow">Quên mật khẩu</span>
+                        <h2 id="forgotTitle">Khôi phục tài khoản</h2>
+                        <p>Nhập email đã đăng ký. Hệ thống sẽ gửi hướng dẫn đặt lại mật khẩu cho bạn.</p>
+                    </div>
+
+                    <form class="auth-form" data-auth-form="forgot">
+                        <div class="form-group">
+                            <label for="forgotEmail">Email tài khoản</label>
+                            <input class="form-control" type="email" id="forgotEmail" name="email" placeholder="user@stockpro.vn" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="forgotCaptcha">Mã xác nhận</label>
+                            <div class="captcha-box">
+                                <img data-captcha-code src="/captcha" alt="Captcha"class="captcha-image">
+                                <button type="button" class="captcha-refresh" data-captcha-refresh aria-label="Đổi mã captcha">↻</button>
+                                <input class="form-control" type="text" id="forgotCaptcha" name="captcha" placeholder="Nhập captcha" required>
+                            </div>
+                        </div>
+
+                        <p class="form-message" data-form-message></p>
+
+                        <button type="submit" class="btn btn-primary auth-submit">Gửi yêu cầu khôi phục</button>
+
+                        <p class="auth-switch">Đã nhớ mật khẩu? <button type="button" data-auth-switch="login">Đăng nhập</button></p>
+                    </form>
+                </section>
+
+                <!-- Register form -->
+                <section class="auth-panel register-panel" aria-labelledby="registerTitle">
+                    <div class="auth-form-head">
+                        <span class="eyebrow">Đăng ký</span>
+                        <h2 id="registerTitle">Tạo tài khoản mới</h2>
+                        <p>Hoàn tất thông tin để bắt đầu mua sản phẩm và quản lý tài khoản Stock Pro.</p>
+                    </div>
+
+                    <form class="auth-form" data-auth-form="register">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="fullName">Họ và tên</label>
+                                <input class="form-control" type="text" id="fullName" name="fullName" placeholder="Nguyễn Văn A" required>
+                                <small class="field-message" data-error-for="fullName"></small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phone">Số điện thoại</label>
+                                <input class="form-control" type="tel" id="phone" name="phone" placeholder="09xxxxxxxx" required>
+                                <small class="field-message" data-error-for="phone"></small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="registerEmail">Email</label>
+                            <input class="form-control" type="email" id="registerEmail" name="email" placeholder="hvsoft.contact@gmail.com" required>
+                            <small class="field-message" data-error-for="registerEmail"></small>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="registerPassword">Mật khẩu</label>
+                                <div class="password-field">
+                                    <input class="form-control" type="password" id="registerPassword" name="password" placeholder="Tối thiểu 8 ký tự" required>
+                                    <button type="button" class="password-toggle" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+                                </div>
+                                <small class="field-message" data-error-for="registerPassword"></small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmPassword">Xác nhận mật khẩu</label>
+                                <div class="password-field">
+                                    <input class="form-control" type="password" id="confirmPassword" name="confirmPassword" placeholder="Nhập lại mật khẩu" required>
+                                    <button type="button" class="password-toggle" data-password-toggle aria-label="Hiện mật khẩu">Hiện</button>
+                                </div>
+                                <small class="field-message" data-error-for="confirmPassword"></small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="registerCaptcha">Mã xác nhận</label>
+                            <div class="captcha-box">
+                                <img data-captcha-code src="/captcha" alt="Captcha" class="captcha-image">
+                                <button type="button" class="captcha-refresh" data-captcha-refresh aria-label="Đổi mã captcha">↻</button>
+                                <input class="form-control" type="text" id="registerCaptcha" name="captcha" placeholder="Nhập captcha" required>
+                            </div>
+                            <small class="field-message" data-error-for="registerCaptcha"></small>
+                        </div>
+
+                        <label class="check-line terms-line">
+                            <input type="checkbox" name="terms" required>
+                            <span>Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật của Stock Pro.</span>
+                        </label>
+                        <small class="field-message" data-error-for="terms"></small>
+
+                        <p class="form-message" data-form-message></p>
+
+                        <button type="submit" class="btn btn-primary auth-submit">Đăng ký tài khoản</button>
+
+                        <p class="auth-switch">
+                            Đã có tài khoản?
+                            <button type="button" data-auth-switch="login">Đăng nhập</button>
+                        </p>
+                    </form>
+                </section>
+            </section>
+        </div>
+    </main>

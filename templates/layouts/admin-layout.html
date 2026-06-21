@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Stock Pro Admin{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/admin.css') }}" />
+</head>
+<body>
+  <header class="admin-topbar">
+    <button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Mở menu quản trị">
+      <span></span><span></span><span></span>
+    </button>
+    <a href="/admin-dashboard" class="topbar-brand">
+      <span class="brand-mark">SP</span>
+      <strong>Stock Pro</strong>
+    </a>
+    <button class="icon-btn" id="quickLogout" title="Đăng xuất">⎋</button>
+  </header>
+
+  <div class="admin-shell">
+    {% include "components/admin-sidebar.html" %}
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <main class="admin-main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    window.STOCKPRO_ADMIN = {
+      fullName: {{ (admin_user.full_name if admin_user else 'Nguyễn Văn Admin')|tojson }},
+      email: {{ (admin_user.email if admin_user else 'admin@stockpro.vn')|tojson }},
+      role: {{ (admin_user.role if admin_user else 'Admin')|tojson }}
+    };
+    window.STOCKPRO_ADMIN_DATA = {{ admin_data|default({})|tojson }};
+  </script>
+  <script src="{{ url_for('static', path='/js/admin.js') }}"></script>
+</body>
+</html>

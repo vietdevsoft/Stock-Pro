@@ -1,0 +1,50 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Python cache / build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE / editor files
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and local runtime files
+*.log
+logs/
+tempCodeRunnerFile.py
+
+# Local test/scratch files
+test.py
+
+# User-uploaded/generated runtime media
+static/avatar/*
+!static/avatar/.gitkeep
+
+# Optional local caches
+.cache/
+tmp/
+temp/
