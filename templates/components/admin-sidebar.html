@@ -1,0 +1,56 @@
+<aside class="admin-sidebar" id="adminSidebar">
+
+  <div class="admin-profile tilt-card">
+    <div class="profile-avatar" id="adminAvatar">{{ ((admin_user.full_name if admin_user else 'Nguyễn Văn Admin')|trim|first|upper) }}</div>
+
+    <div class="profile-meta">
+      <strong id="adminFullName">Đang tải...</strong>
+      <span id="adminEmail">Đang tải email...</span>
+      <em id="roleLabel">...</em>
+    </div>
+  </div>
+
+  <!-- Nút quay lại trang chủ -->
+  <a href="/" class="sidebar-back-btn">
+    <span class="back-icon">←</span>
+    <b>Quay lại trang chủ</b>
+  </a>
+
+  <nav class="admin-menu" id="adminMenu">
+    <button class="menu-item active" data-section="overview">
+      <span>📊</span>
+      <b>Tổng quan</b>
+    </button>
+
+    <button class="menu-item" data-section="products">
+      <span>📦</span>
+      <b>Tất cả mặt hàng</b>
+    </button>
+
+    <button class="menu-item" data-section="inventory-actions">
+      <span>➕</span>
+      <b>Thêm / Nhập / Xuất hàng</b>
+    </button>
+
+    <button class="menu-item" data-section="categories">
+      <span>🗂️</span>
+      <b>Quản lý nhóm hàng</b>
+    </button>
+
+    <button class="menu-item" data-section="transactions">
+      <span>🧾</span>
+      <b>Lịch sử giao dịch</b>
+    </button>
+
+    <!-- JS sẽ tự hiện nếu role_id = 1 -->
+    <button class="menu-item admin-only" data-section="settings" id="settingsMenuItem">
+      <span>⚙️</span>
+      <b>Cấu hình website</b>
+    </button>
+  </nav>
+
+  <button class="logout-btn" id="logoutBtn">
+    <span>⛔</span>
+    <b>Đăng xuất</b>
+  </button>
+</aside>

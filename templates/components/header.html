@@ -1,0 +1,30 @@
+<header class="site-header" id="siteHeader">
+    <div class="container header-wrapper">
+        <a href="/" class="brand" aria-label="Stock Pro home">
+            <span class="brand-mark">SP</span>
+            <span class="brand-text">Stock Pro</span>
+        </a>
+
+        <nav class="nav-menu" id="navMenu" aria-label="Main navigation">
+            <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">Trang chủ</a>
+            <a href="/#policies" class="nav-link {% if active_page == 'policies' %}active{% endif %}">Chính sách mua hàng</a>
+            <a href="/#process" class="nav-link {% if active_page == 'process' %}active{% endif %}">Quy trình mua hàng</a>
+            <a href="/#benefits" class="nav-link {% if active_page == 'benefits' %}active{% endif %}">Lợi ích nổi bật</a>
+            <a href="/products" class="nav-link {% if active_page == 'products' %}active{% endif %}">Sản phẩm</a>
+
+            {% if is_logged_in %}
+            <a href="/profile" class="user-account-link {% if active_page == 'profile' %}active{% endif %}" aria-label="Đi tới trang tài khoản của tôi">
+                <span class="user-avatar{% if user_avatar %} has-image{% endif %}"{% if user_avatar %} style="background-image: url('{{ user_avatar }}');"{% endif %}>{% if not user_avatar %}{{ (user_name|trim|first|upper) if user_name else 'U' }}{% endif %}</span>
+                <span class="user-name">{{ user_name }}</span>
+            </a>
+            {% else %}
+            <a href="/login" class="nav-link nav-login {% if active_page == 'login' %}active{% endif %}">Đăng nhập</a>
+            <a href="/register" class="nav-link nav-register {% if active_page == 'register' %}active{% endif %}">Đăng ký</a>
+            {% endif %}
+        </nav>
+
+        <button class="hamburger" id="hamburgerBtn" aria-label="Mở menu" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</header>

@@ -1,0 +1,262 @@
+{% extends "layouts/user-layout.html" %}
+{% set active_page = 'profile' %}
+{% set is_logged_in = true %}
+{% block title %}Tài khoản của tôi - Stock Pro{% endblock %}
+{% block description %}Trang quản lý tài khoản người dùng Stock Pro.{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', path='css/account.css') }}">{% endblock %}
+{% block page_content %}
+<main class="account-page">
+        <section class="account-hero section-observe show">
+            <div class="container account-hero-grid">
+                <div>
+                    <a href="/" class="back-link">← Quay lại trang chủ</a>
+                    <span class="eyebrow">User Account</span>
+                    <h1>Tài khoản của tôi</h1>
+                    <p>Quản lý thông tin cá nhân, địa chỉ nhận hàng, đơn hàng, lịch sử mua hàng và bảo mật tài khoản.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="account-dashboard section-observe show">
+            <div class="container dashboard-layout">
+                <!-- Sidebar -->
+                <aside class="account-sidebar" aria-label="Account navigation">
+                    <div class="sidebar-user">
+                        <span class="sidebar-avatar" id="sidebarAvatar"></span>
+                        <div>
+                            <strong id="sidebarFullName"></strong>
+                            <small id="sidebarEmail"></small>
+                        </div>
+                    </div>
+
+                    <button class="sidebar-toggle" id="sidebarToggle" type="button">Danh mục tài khoản</button>
+
+                    <nav class="account-tabs" id="accountTabs">
+                        <button class="tab-btn active" data-tab="profile">Thông tin cá nhân</button>
+                        <button class="tab-btn" data-tab="addresses">Địa chỉ nhận hàng</button>
+                        <button class="tab-btn" data-tab="orders">Trạng thái đơn hàng</button>
+                        <button class="tab-btn" data-tab="history">Lịch sử mua hàng</button>
+                        <button class="tab-btn" data-tab="spending">Tổng chi tiêu</button>
+                        <button class="tab-btn" data-tab="security">Đổi mật khẩu</button>
+                        <button class="tab-btn" data-tab="complaint">Gửi yêu cầu khiếu nại</button>
+                        <button class="tab-btn logout-tab" type="button" data-open-logout>Đăng xuất</button>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <div class="account-content">
+                    <!-- Profile -->
+                    <section class="tab-panel active" id="profile">
+                        <div class="panel-heading">
+                            <span class="eyebrow">Personal Information</span>
+                            <h2>Thông tin cá nhân</h2>
+                            <p>Thông tin định danh và trạng thái xác thực của tài khoản.</p>
+                        </div>
+                        <div class="profile-card tilt-card">
+                            <div class="profile-left">
+                                <div class="large-avatar" id="largeAvatar">{{ (user_name|trim|first|upper) if user_name else 'U' }}</div>
+                                <input type="file" id="avatarInput" accept="image/png, image/jpeg, image/webp" hidden>
+                                <button class="btn btn-secondary small-btn" id="changeAvatarBtn" type="button">Thay đổi ảnh</button>
+                                <button class="btn btn-primary profile-action" id="editProfileBtn" type="button">Chỉnh sửa thông tin</button>
+                            </div>
+                            <div class="profile-info-grid">
+                                <button class="info-item info-edit-button" type="button" data-editable-info="full-name" aria-disabled="true"><span>Họ và tên</span><strong id="profileFullName" contenteditable="false" spellcheck="false"></strong></button>
+                                <button class="info-item info-edit-button" type="button" data-editable-info="phone-number" aria-disabled="true"><span>Số điện thoại</span><strong id="profilePhoneNumber" contenteditable="false" spellcheck="false"></strong></button>
+                                <div class="info-item"><span>Email</span><strong id="profileEmail"></strong></div>
+                                <div class="info-item"><span>Ngày tạo tài khoản</span><strong id="profileCreatedAt"></strong></div>
+                                <div class="info-item"><span>Trạng thái</span><strong class="status success" id="profileStatus"></strong></div>
+                                <div class="info-item"><span>Cấp bậc</span><strong class="rank-badge" id="profileRole"></strong></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Addresses -->
+                    <section class="tab-panel" id="addresses">
+                        <div class="panel-heading">
+                            <span class="eyebrow">Shipping Address</span>
+                            <h2>Địa chỉ nhận hàng</h2>
+                            <p>Quản lý địa chỉ giao hàng mặc định và địa chỉ phụ.</p>
+                        </div>
+                        <div class="address-grid">
+                            <article class="address-card tilt-card">
+                                <span class="default-badge">Mặc định</span>
+                                <h3>Nguyễn Văn A</h3>
+                                <p>0987 654 321</p>
+                                <p>123 Nguyễn Trãi, Quận 1, TP. Hồ Chí Minh</p>
+                                <div class="card-actions"><button>Sửa</button><button class="danger-text">Xóa</button></div>
+                            </article>
+                            <article class="address-card tilt-card">
+                                <h3>Nguyễn Văn A</h3>
+                                <p>0987 654 321</p>
+                                <p>45 Lê Lợi, Quận 3, TP. Hồ Chí Minh</p>
+                                <div class="card-actions"><button>Sửa</button><button class="danger-text">Xóa</button></div>
+                            </article>
+                            <button class="add-card" type="button">+ Thêm địa chỉ mới</button>
+                        </div>
+                    </section>
+
+                    <!-- Orders -->
+                    <section class="tab-panel" id="orders">
+                        <div class="panel-heading">
+                            <span class="eyebrow">Order Tracking</span>
+                            <h2>Trạng thái đơn hàng</h2>
+                            <p>Theo dõi tiến trình xử lý và giao hàng của các đơn hiện tại.</p>
+                        </div>
+                        <div class="order-list">
+                            <article class="order-card tilt-card">
+                                <div class="order-top">
+                                    <div><strong>#SP202605001</strong><span>Chuột không dây Logitech</span></div>
+                                    <span class="status shipping">Đang giao hàng</span>
+                                </div>
+                                <div class="order-meta"><span>Ngày đặt: 25/05/2026</span><span>Tổng tiền: 350.000đ</span></div>
+                                <div class="progress-line active-3"><span>Đã đặt</span><span>Đang xử lý</span><span>Đang giao</span><span>Hoàn thành</span></div>
+                                <button class="btn btn-secondary small-btn" type="button">Xem chi tiết</button>
+                            </article>
+                            <article class="order-card tilt-card">
+                                <div class="order-top">
+                                    <div><strong>#SP202605002</strong><span>SSD Kingston 512GB</span></div>
+                                    <span class="status pending">Đang xử lý</span>
+                                </div>
+                                <div class="order-meta"><span>Ngày đặt: 26/05/2026</span><span>Tổng tiền: 890.000đ</span></div>
+                                <div class="progress-line active-2"><span>Đã đặt</span><span>Đang xử lý</span><span>Đang giao</span><span>Hoàn thành</span></div>
+                                <button class="btn btn-secondary small-btn" type="button">Xem chi tiết</button>
+                            </article>
+                        </div>
+                    </section>
+
+                    <!-- History -->
+                    <section class="tab-panel" id="history">
+                        <div class="panel-heading">
+                            <span class="eyebrow">Purchase History</span>
+                            <h2>Lịch sử mua hàng</h2>
+                            <p>Danh sách đơn hàng đã mua và trạng thái xử lý.</p>
+                        </div>
+                        <div class="table-card">
+                            <table class="history-table">
+                                <thead>
+                                    <tr><th>Mã đơn hàng</th><th>Ngày mua</th><th>Sản phẩm</th><th>Số lượng</th><th>Tổng tiền</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td data-label="Mã đơn hàng">#SP202604021</td><td data-label="Ngày mua">12/04/2026</td><td data-label="Sản phẩm">Bàn phím văn phòng</td><td data-label="Số lượng">1</td><td data-label="Tổng tiền">250.000đ</td></tr>
+                                    <tr><td data-label="Mã đơn hàng">#SP202604032</td><td data-label="Ngày mua">18/04/2026</td><td data-label="Sản phẩm">Router WiFi TP-Link</td><td data-label="Số lượng">1</td><td data-label="Tổng tiền">620.000đ</td></tr>
+                                    <tr><td data-label="Mã đơn hàng">#SP202605001</td><td data-label="Ngày mua">25/05/2026</td><td data-label="Sản phẩm">Chuột không dây Logitech</td><td data-label="Số lượng">2</td><td data-label="Tổng tiền">350.000đ</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Spending -->
+                    <section class="tab-panel" id="spending">
+                        <div class="panel-heading">
+                            <span class="eyebrow">Customer Spending</span>
+                            <h2>Tổng chi tiêu</h2>
+                            <p>Tổng quan giá trị mua hàng và số lượng đơn đã thực hiện.</p>
+                        </div>
+                        <div class="spending-grid">
+                            <div class="metric-card primary"><span>Tổng số tiền</span><strong class="count-up" data-value="1220000">0đ</strong></div>
+                            <div class="metric-card"><span>Tổng đơn hàng</span><strong class="count-up" data-value="3">0</strong><small>đơn</small></div>
+                            <div class="metric-card"><span>Sản phẩm đã mua</span><strong class="count-up" data-value="4">0</strong><small>sản phẩm</small></div>
+                            <div class="metric-card"><span>Đang xử lý</span><strong class="count-up" data-value="2">0</strong><small>đơn</small></div>
+                            <div class="metric-card"><span>Hoàn thành</span><strong class="count-up" data-value="2">0</strong><small>đơn</small></div>
+                            <div class="metric-card"><span>Sản phẩm đã hủy</span><strong class="count-up" data-value="1">0</strong><small>sản phẩm</small></div>
+                            <div class="chart-card"><div class="bar" style="height:46%"></div><div class="bar" style="height:64%"></div><div class="bar" style="height:82%"></div><div class="bar" style="height:55%"></div><div class="bar" style="height:74%"></div></div>
+                        </div>
+                    </section>
+
+                    <!-- Security -->
+                    <section class="tab-panel" id="security">
+                        <div class="panel-heading">
+                            <span class="eyebrow">Account Security</span>
+                            <h2>Đổi mật khẩu</h2>
+                            <p>Cập nhật mật khẩu để tăng bảo mật tài khoản.</p>
+                        </div>
+                        <form class="security-form security-form-pro" id="passwordForm">
+                            <div class="security-note">
+                                <strong>Bảo mật tài khoản</strong>
+                                <span>Mật khẩu mới nên có tối thiểu 6 ký tự và không trùng với mật khẩu cũ.</span>
+                            </div>
+
+                            <label>Mật khẩu hiện tại
+                                <input type="password" placeholder="Nhập mật khẩu hiện tại" required>
+                            </label>
+
+                            <div class="security-two-cols">
+                                <label>Mật khẩu mới
+                                    <input id="newPassword" type="password" minlength="6" placeholder="Tối thiểu 6 ký tự" required>
+                                </label>
+                                <label>Xác nhận mật khẩu mới
+                                    <input id="confirmPassword" type="password" minlength="6" placeholder="Nhập lại mật khẩu mới" required>
+                                </label>
+                            </div>
+
+                            <label>Mã xác nhận
+                                <div class="captcha-row account-captcha-row">
+                                    <span class="captcha-code" id="passwordCaptchaCode">SP84K</span>
+                                    <button class="captcha-refresh" id="passwordCaptchaRefresh" type="button" aria-label="Đổi mã captcha">↻</button>
+                                    <input id="passwordCaptchaInput" type="text" placeholder="Nhập mã captcha" required>
+                                </div>
+                            </label>
+
+                            <p class="form-message" id="passwordMessage"></p>
+                            <button class="btn btn-primary" type="submit">Cập nhật mật khẩu</button>
+                        </form>
+                    </section>
+
+                    <!-- Complaint -->
+                    <section class="tab-panel" id="complaint">
+                        <div class="panel-heading">
+                            <span class="eyebrow">Customer Complaint</span>
+                            <h2>Gửi yêu cầu khiếu nại</h2>
+                            <p>Gửi phản hồi về đơn hàng, thanh toán QR, giao hàng hoặc chất lượng sản phẩm.</p>
+                        </div>
+                        <div class="complaint-layout">
+                            <form class="complaint-form">
+                                <label>Mã đơn hàng<input type="text" placeholder="#SP202605001"></label>
+                                <label>Loại hỗ trợ
+                                    <select>
+                                        <option>Khiếu nại giao hàng</option>
+                                        <option>Thanh toán QR</option>
+                                        <option>Đổi trả sản phẩm</option>
+                                        <option>Bảo hành sản phẩm</option>
+                                    </select>
+                                </label>
+                                <label>Chủ đề khiếu nại<input type="text" placeholder="Ví dụ: Chậm giao hàng"></label>
+                                <label>Nội dung<textarea rows="4" placeholder="Mô tả chi tiết vấn đề bạn cần hỗ trợ..."></textarea></label>
+                                <button class="btn btn-primary" type="button">Gửi yêu cầu khiếu nại</button>
+                            </form>
+                            <div class="support-column">
+                                <div class="complaint-info">
+                                    <h3>Kênh hỗ trợ trực tiếp</h3>
+                                    <p>Hotline: <strong>1900 0000</strong></p>
+                                    <p>Email: <strong>support@stockpro.vn</strong></p>
+                                    <p>Thời gian phản hồi: <strong>24 giờ làm việc</strong></p>
+                                </div>
+                                <div class="support-policy-card">
+                                    <h3>Chính sách hỗ trợ</h3>
+                                    <ul>
+                                        <li><strong>Tiếp nhận khiếu nại:</strong> trong vòng 24 giờ làm việc.</li>
+                                        <li><strong>Thanh toán QR:</strong> đối soát theo mã đơn hàng và ảnh giao dịch.</li>
+                                        <li><strong>Đổi trả:</strong> hỗ trợ trong 7 ngày nếu sản phẩm lỗi kỹ thuật.</li>
+                                        <li><strong>Bảo hành:</strong> áp dụng theo chính sách của từng sản phẩm.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </section>
+    </main>
+<!-- Logout Modal -->
+    <div class="modal-backdrop" id="logoutModal" aria-hidden="true">
+        <div class="logout-modal" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
+            <h2 id="logoutTitle">Bạn có chắc muốn đăng xuất?</h2>
+            <p>Phiên làm việc hiện tại sẽ kết thúc và bạn sẽ quay về trang chủ.</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" data-close-logout>Hủy</button>
+                <a class="btn btn-danger" href="/">Đăng xuất</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', path='js/profile.js') }}?v=20260622-tabs"></script>{% endblock %}

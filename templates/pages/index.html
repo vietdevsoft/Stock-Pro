@@ -1,0 +1,174 @@
+{% extends "layouts/user-layout.html" %}
+{% set active_page = 'home' %}
+{% block title %}Stock Pro - Trang chủ người dùng{% endblock %}
+{% block description %}Stock Pro là nền tảng quản lý kho hàng và bán sản phẩm trực tuyến dành cho doanh nghiệp hiện đại.{% endblock %}
+{% block page_content %}
+<main>
+        <!-- Hero Section -->
+        <section class="hero section-observe" id="home">
+            <div class="hero-bg-orb orb-one"></div>
+            <div class="hero-bg-orb orb-two"></div>
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <span class="eyebrow">Quản lý kho hàng • Nền tảng thương mại điện tử</span>
+                    <h1>Quản lý kho hàng hiệu quả, mua sắm nhanh chóng</h1>
+                    <p class="hero-description">
+                        Stock Pro giúp doanh nghiệp quản lý sản phẩm, danh mục, tồn kho, nhập xuất hàng và đồng thời cung cấp nền tảng để người dùng xem, chọn và mua sản phẩm trực tuyến.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="/products" class="btn btn-primary">Khám phá sản phẩm</a>
+                    </div>
+                    <div class="hero-stats" aria-label="Stock Pro statistics">
+                        <div class="stat-card tilt-card">
+                            <strong>1.200+</strong>
+                            <span>Sản phẩm</span>
+                        </div>
+                        <div class="stat-card tilt-card">
+                            <strong>98%</strong>
+                            <span>Xử lý nhanh hơn</span>
+                        </div>
+                        <div class="stat-card tilt-card">
+                            <strong>24/7</strong>
+                            <span>Hỗ trợ người dùng</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-visual" aria-label="Dashboard quản lý kho Stock Pro">
+                    <div class="dashboard-card floating-card tilt-card">
+                        <div class="dashboard-topbar">
+                            <div>
+                                <span class="small-label">Tổng quan kho hàng</span>
+                                <h3>Kiểm soát hàng tồn kho</h3>
+                            </div>
+                            <span class="live-badge">Live</span>
+                        </div>
+                        <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=1200&q=80" alt="Dashboard quản lý kho và dữ liệu sản phẩm" class="dashboard-image">
+                        <div class="kpi-row">
+                            <div class="mini-kpi">
+                                <span>Tồn kho</span>
+                                <strong>8.420</strong>
+                            </div>
+                            <div class="mini-kpi alert-kpi">
+                                <span>Sắp hết</span>
+                                <strong>26</strong>
+                            </div>
+                            <div class="mini-kpi">
+                                <span>Đơn mới</span>
+                                <strong>184</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="floating-note note-left">Nhập xuất kho theo thời gian thực</div>
+                    <div class="floating-note note-right">Cảnh báo tồn kho thấp</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="section about section-observe" id="about">
+            <div class="container about-grid">
+                <div class="section-heading align-left">
+                    <span class="eyebrow">Giới thiệu nền tảng</span>
+                    <h2>Quản lý kho hàng kết hợp bán sản phẩm trực tuyến</h2>
+                    <p>
+                        Stock Pro hỗ trợ doanh nghiệp quản lý sản phẩm, danh mục, tồn kho, nhập kho, xuất kho và lịch sử giao dịch. Người dùng có thể đăng nhập, xem danh mục, xem sản phẩm, mua hàng và theo dõi lịch sử mua hàng.
+                    </p>
+                    <p>
+                        Hệ thống giúp tối ưu quy trình vận hành, giảm sai sót khi quản lý kho và nâng cao trải nghiệm mua sắm trên một nền tảng thống nhất.
+                    </p>
+                </div>
+                <div class="about-panel tilt-card">
+                    <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80" alt="Kho hàng hiện đại với quy trình quản lý chuyên nghiệp">
+                    <div class="about-feature-grid">
+                        <div>
+                            <strong>Realtime</strong>
+                            <span>Cập nhật tồn kho</span>
+                        </div>
+                        <div>
+                            <strong>Smart</strong>
+                            <span>Cảnh báo tự động</span>
+                        </div>
+                        <div>
+                            <strong>Secure</strong>
+                            <span>Tài khoản cá nhân</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefits Section -->
+        <section class="section benefits section-observe" id="benefits">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="eyebrow">Lợi ích nổi bật</span>
+                    <h2>Một hệ thống cho cả quản lý kho và bán hàng</h2>
+                    <p>Các tính năng được thiết kế để hỗ trợ vận hành nội bộ và trải nghiệm mua hàng của người dùng.</p>
+                </div>
+                <div class="benefit-grid">
+                    <article class="feature-card tilt-card"><span class="icon">🏢</span><h3>Quản lý kho tập trung</h3><p>Theo dõi toàn bộ sản phẩm, danh mục và tồn kho trong một giao diện thống nhất.</p></article>
+                    <article class="feature-card tilt-card"><span class="icon">📊</span><h3>Tồn kho thời gian thực</h3><p>Cập nhật số lượng hàng hóa nhanh chóng, giảm rủi ro sai lệch dữ liệu.</p></article>
+                    <article class="feature-card tilt-card"><span class="icon">🔄</span><h3>Nhập kho và xuất kho</h3><p>Quản lý lịch sử nhập xuất, kiểm soát luồng hàng hóa rõ ràng hơn.</p></article>
+                    <article class="feature-card tilt-card"><span class="icon">🗂️</span><h3>Danh mục rõ ràng</h3><p>Phân nhóm sản phẩm khoa học giúp người dùng tìm kiếm nhanh hơn.</p></article>
+                    <article class="feature-card tilt-card"><span class="icon">🛒</span><h3>Mua hàng trực tuyến</h3><p>Hỗ trợ người dùng xem sản phẩm, chọn hàng và mua nhanh trên website.</p></article>
+                    <article class="feature-card tilt-card"><span class="icon">👤</span><h3>Tài khoản cá nhân</h3><p>Cho phép người dùng quản lý thông tin, đơn mua và lịch sử giao dịch.</p></article>
+                    <article class="feature-card tilt-card"><span class="icon">🧾</span><h3>Lịch sử mua hàng</h3><p>Theo dõi các đơn hàng, trạng thái thanh toán và thông tin sản phẩm đã mua.</p></article>
+                    <article class="feature-card tilt-card"><span class="icon">🛡️</span><h3>Chính sách minh bạch</h3><p>Trình bày rõ quy trình đặt hàng, thanh toán, đổi trả và bảo hành.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Policies Section -->
+        <section class="section policies section-observe" id="policies">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="eyebrow">Chính sách mua hàng</span>
+                    <h2>Minh bạch từ đặt hàng đến bảo hành</h2>
+                    <p>Người dùng nắm rõ quyền lợi, chi phí và quy trình hỗ trợ trước khi mua sản phẩm.</p>
+                </div>
+                <div class="policy-grid">
+                    <article class="policy-card tilt-card"><span>📝</span><h3>Chính sách đặt hàng</h3><p>Đặt hàng nhanh sau khi đăng nhập, chọn sản phẩm và xác nhận thông tin đơn.</p></article>
+                    <article class="policy-card tilt-card"><span>💳</span><h3>Chính sách thanh toán</h3><p>Hỗ trợ nhiều hình thức thanh toán phù hợp với người dùng và doanh nghiệp.</p></article>
+                    <article class="policy-card tilt-card"><span>🚚</span><h3>Chính sách giao hàng</h3><p>Cập nhật trạng thái giao hàng rõ ràng, giúp theo dõi đơn thuận tiện.</p></article>
+                    <article class="policy-card tilt-card"><span>↩️</span><h3>Chính sách đổi trả</h3><p>Quy định đổi trả minh bạch theo tình trạng sản phẩm và thời gian tiếp nhận.</p></article>
+                    <article class="policy-card tilt-card"><span>🛠️</span><h3>Chính sách bảo hành</h3><p>Thông tin bảo hành được trình bày rõ theo từng nhóm sản phẩm.</p></article>
+                    <article class="policy-card tilt-card"><span>☎️</span><h3>Hỗ trợ khách hàng</h3><p>Đội ngũ hỗ trợ xử lý yêu cầu và phản hồi trong quá trình sử dụng.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Purchase Process Section -->
+        <section class="section process section-observe" id="process">
+            <div class="container">
+                <div class="section-heading">
+                    <span class="eyebrow">Quy trình mua hàng</span>
+                    <h2>4 bước mua sản phẩm trên Stock Pro</h2>
+                    <p>Quy trình được thiết kế ngắn gọn, dễ hiểu và phù hợp với người dùng mới.</p>
+                </div>
+                <div class="timeline">
+                    <article class="step-card tilt-card"><span class="step-number">01</span><h3>Đăng ký hoặc đăng nhập</h3><p>Tạo tài khoản hoặc đăng nhập để bắt đầu mua sản phẩm.</p></article>
+                    <article class="step-card tilt-card"><span class="step-number">02</span><h3>Chọn danh mục và sản phẩm</h3><p>Lọc theo danh mục, xem thông tin và chọn sản phẩm cần mua.</p></article>
+                    <article class="step-card tilt-card"><span class="step-number">03</span><h3>Xác nhận và thanh toán</h3><p>Kiểm tra thông tin đơn hàng, số lượng và hoàn tất thanh toán.</p></article>
+                    <article class="step-card tilt-card"><span class="step-number">04</span><h3>Theo dõi lịch sử mua hàng</h3><p>Xem trạng thái đơn, lịch sử mua và thông tin nhận sản phẩm.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="section cta-section section-observe" id="signup">
+            <div class="container">
+                <div class="cta-card">
+                    <div>
+                        <span class="eyebrow light">Giải pháp quản lý kho & bán hàng</span>
+                        <h2>Sẵn sàng quản lý kho hàng và mua sắm hiệu quả hơn với Stock Pro?</h2>
+                        <p>Bắt đầu trải nghiệm nền tảng quản lý kho kết hợp mua bán sản phẩm trực tuyến, giúp doanh nghiệp và người dùng kết nối nhanh hơn, chính xác hơn và chuyên nghiệp hơn.</p>
+                    </div>
+                    <div class="cta-actions">
+                        <a href="/register" class="btn btn-gold">Đăng ký ngay</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock %}

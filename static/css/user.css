@@ -1,0 +1,7 @@
+.user-layout { display: grid; grid-template-columns: 260px 1fr; gap: 24px; }
+.user-sidebar { background: #fff; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 10px; height: fit-content; }
+.user-sidebar a { padding: 12px; border-radius: 10px; color: #334155; }
+.user-sidebar a:hover { background: #eff6ff; color: #1d4ed8; }
+.user-content { min-width: 0; }
+.user-content h1 { margin-bottom: 18px; }
+@media (max-width: 768px) { .user-layout { grid-template-columns: 1fr; } }
