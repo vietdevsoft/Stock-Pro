@@ -1,3 +1,6 @@
+import email
+import re
+
 from services.query_service import QueryDB
 from utils.response import success_response, error_response
 
@@ -55,13 +58,33 @@ class RegisterService:
         self.captcha = captcha
         self.answer_captcha = answer_captcha
 
+    def check_full_name(self, full_name: str) -> bool:
+        pattern = r"^[A-Za-zÀ-ỹ\s.]+$"
+        return bool(re.fullmatch(pattern, full_name.strip()))
+
+    def check_phone_number(self, phone: str) -> bool:
+        return bool(re.fullmatch(r"0\d{9}", phone))
+
+    def check_email(self, email: str) -> bool:
+        pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+        return bool(re.fullmatch(pattern, email))
+
     def register(self):
         if self.captcha != self.answer_captcha:
             return error_response("Captcha không chính xác.")
 
+        if not self.check_full_name(self.full_name):
+            return error_response("Họ và tên không hợp lệ.")
+
+        if not self.check_phone_number(self.phone_number):
+            return error_response("Số điện thoại không hợp lệ.")
+
         check_phone = QueryDB.query("SELECT id FROM users WHERE phone_number = %s", (self.phone_number,))
         if check_phone is not None:
             return error_response("Số điện thoại đã được sử dụng.")
+
+        if not self.check_email(self.email):
+            return error_response("Email không hợp lệ.")
 
         check_email = QueryDB.query("SELECT id FROM users WHERE email = %s", (self.email,))
         if check_email is not None:

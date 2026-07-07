@@ -11,9 +11,21 @@ const menuNavLinks = document.querySelectorAll('.nav-menu .nav-link');
 const tiltCards = document.querySelectorAll('.tilt-card');
 
 // Header shadow when scrolling
-window.addEventListener('scroll', () => {
+let headerScrollTicking = false;
+
+function updateHeaderScrollState() {
+    if (!header) return;
+
     header.classList.toggle('scrolled', window.scrollY > 18);
-});
+    headerScrollTicking = false;
+}
+
+window.addEventListener('scroll', () => {
+    if (headerScrollTicking) return;
+
+    headerScrollTicking = true;
+    window.requestAnimationFrame(updateHeaderScrollState);
+}, { passive: true });
 
 // Open mobile menu
 function openMenu() {
