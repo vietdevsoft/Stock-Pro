@@ -189,6 +189,15 @@ p {
     background: linear-gradient(135deg, var(--navy), var(--cyan));
     box-shadow: 0 14px 28px rgba(0, 194, 216, 0.26);
     font-size: 0.92rem;
+
+    overflow: hidden;
+}
+
+.brand-mark img {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    display: block;
 }
 
 .brand-text {
@@ -1578,6 +1587,42 @@ textarea {
 .pagination-btn:disabled:hover {
     transform: none;
     border-color: rgba(15, 23, 42, 0.12);
+}
+
+/* Product page performance tuning */
+.product-catalog {
+    content-visibility: auto;
+    contain-intrinsic-size: 1100px;
+}
+
+.product-grid {
+    align-items: stretch;
+}
+
+.product-card {
+    contain: layout paint;
+    transform-style: flat;
+    will-change: auto;
+}
+
+.product-card,
+.filter-chip,
+.pagination-btn {
+    transition-property: transform, box-shadow, border-color, background, color;
+}
+
+.product-image img {
+    aspect-ratio: 16 / 10;
+    background: rgba(11, 31, 58, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .section-observe,
+    .product-card,
+    .pagination-btn,
+    .filter-chip {
+        transition: none;
+    }
 }
 
 @media (max-width: 560px) {
