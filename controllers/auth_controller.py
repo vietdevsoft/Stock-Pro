@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Request, Response,  HTTPException
 from schemas.auth_schema import RegisterRequests, LoginRequests, ForgotRequests
 from services.auth_service import LoginService, RegisterService, ForgotService
@@ -50,7 +52,7 @@ def login(data: LoginRequests, request: Request, response: Response):
             httponly=True,
             max_age=60 * 60 * 24,
             samesite="lax",
-            secure=True
+            secure=os.getenv("COOKIE_SECURE", "true").lower() == "true"
         )
 
     return result
