@@ -22,7 +22,7 @@
                     </div>
                 </div>
                 <div class="products-page-visual tilt-card">
-                    <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80" alt="Kho hàng và sản phẩm công nghệ">
+                    <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80" alt="Kho hàng và sản phẩm công nghệ" decoding="async">
                     <div class="visual-badge">Cập nhật tồn kho theo thời gian thực</div>
                 </div>
             </div>
@@ -47,6 +47,6 @@
 
     </main>
 {% block extra_js %}
-<script src="{{ url_for('static', path='js/products.js') }}"></script>
+<script src="{{ url_for('static', path='js/products.js') }}?v=20260622-products-perf"></script>
 {% endblock %}
 {% endblock %}
