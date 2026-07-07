@@ -166,7 +166,7 @@ function createProductCard(product, categoryMap) {
     return `
         <article class="product-card tilt-card">
             <div class="product-image">
-                <img src="${imageUrl}" alt="${productName}">
+                <img src="${imageUrl}" alt="${productName}" loading="lazy" decoding="async">
                 <span class="stock-badge ${badge.className}">${badge.text}</span>
             </div>
 
