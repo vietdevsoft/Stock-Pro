@@ -132,6 +132,24 @@
 <div class="category-list" id="categoryList"></div>
 </article>
 </div>
+<details class="panel unit-dropdown" id="unitDropdown">
+<summary class="unit-dropdown-summary">
+<span class="section-kicker">UNITS</span>
+<strong>Đơn vị tính</strong>
+<small id="unitCount">0 đơn vị</small>
+</summary>
+<div class="unit-dropdown-body">
+<form class="admin-form unit-inline-form" id="unitForm" novalidate="">
+<label>Tên đơn vị<input name="name" placeholder="VD: Thùng"/></label>
+<label>Ký hiệu<input name="symbol" placeholder="VD: thung"/></label>
+<div class="form-actions unit-form-actions"><button class="btn btn-primary" type="submit">Thêm đơn vị</button><button class="btn btn-soft" type="reset">Làm mới</button></div>
+</form>
+<div class="unit-list-wrap">
+<div class="unit-list-head"><span>Đơn vị hiện có</span><b id="unitCountLabel">0</b></div>
+<div class="unit-compact-list" id="unitList"></div>
+</div>
+</div>
+</details>
 </section>
 <!-- Transactions -->
 <section class="content-section" id="transactions">
