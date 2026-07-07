@@ -12,6 +12,7 @@ let categories = [];
 let units = [];
 let transactions = [];
 let users = [];
+let currentAdmin = null;
 
 const pageTitles = {
   overview: ["Tổng quan quản trị", "Theo dõi tình trạng kho hàng, giao dịch nhập xuất và hiệu suất vận hành."],
@@ -56,6 +57,7 @@ async function requestJSON(url, options = {}) {
       ...options
     });
     const data = await response.json();
+    if (data.detail && !data.message) data.message = data.detail;
     if (!response.ok || !data.success) console.error("Request failed:", data.message || url);
     return data;
   } catch (error) {
@@ -67,16 +69,20 @@ async function requestJSON(url, options = {}) {
 const api = {
   get: requestJSON,
   post: (url, body) => requestJSON(url, { method: "POST", body: JSON.stringify(body) }),
+  put: (url, body) => requestJSON(url, { method: "PUT", body: JSON.stringify(body) }),
+  patch: (url, body) => requestJSON(url, { method: "PATCH", body: JSON.stringify(body) }),
   del: url => requestJSON(url, { method: "DELETE" })
 };
 
 async function refresh() {
-  const [categoryResult, unitResult, productResult, transactionResult, userResult] = await Promise.all([
+  const isSuperAdmin = Number(currentAdmin?.role_id) === 1;
+  const [categoryResult, unitResult, productResult, transactionResult, userResult, settingsResult] = await Promise.all([
     api.get("/view/categories"),
     api.get("/view/units"),
     api.get("/view/products"),
     api.get("/view/products/transactions"),
-    api.get("/view/users")
+    isSuperAdmin ? api.get("/view/users") : Promise.resolve({ success: true, data: [] }),
+    isSuperAdmin ? api.get("/view/settings") : Promise.resolve({ success: true, data: null })
   ]);
 
   categories = readList(categoryResult, "Không thể tải danh mục.");
@@ -84,13 +90,14 @@ async function refresh() {
   transactions = readList(transactionResult, "Không thể tải giao dịch.");
   users = readList(userResult, "Không thể tải người dùng.").map(normalizeUser);
   products = await normalizeProducts(readList(productResult, "Không thể tải sản phẩm."));
+  if (settingsResult.success && settingsResult.data) applySiteSettings(settingsResult.data);
 
   renderAll();
 }
 
 function readList(result, fallbackMessage) {
   if (result.success) return result.data || [];
-  toast(result.message || fallbackMessage, "error");
+  toast(result.message || result.detail || fallbackMessage, "error");
   return [];
 }
 
@@ -135,6 +142,9 @@ function normalizeUser(user) {
     email: user.email || "",
     phone: user.phone || user.phone_number || "",
     createdAt: formatDate(user.createdAt || user.created_at),
+    roleId: Number(user.role_id || 0),
+    roleName: user.role_name || "",
+    statusRaw: user.status || "",
     role: roleNames[roleKey] || roleNames[Number(user.role_id)] || "Không xác định",
     status: user.statusLabel || statusNames[statusKey] || user.status || "Không xác định"
   };
@@ -173,6 +183,7 @@ function renderAll() {
   renderSelects();
   renderProducts();
   renderCategories();
+  renderUnits();
   renderTransactions();
   renderUsers();
   renderOverview();
@@ -302,7 +313,7 @@ function productTableRow(product) {
     <td>${product.unit}</td>
     <td>${money(product.price)}</td>
     <td><span class="badge ${badgeClass(status)}">${status}</span></td>
-    <td><div class="action-row"><button class="small-btn delete" data-delete-product="${product.id}" data-product-code="${product.code}">Xóa</button></div></td>
+    <td><div class="action-row"><button class="small-btn" data-edit-product="${product.id}">Sửa</button><button class="small-btn delete" data-delete-product="${product.id}" data-product-code="${product.code}">Xóa</button></div></td>
   </tr>`;
 }
 
@@ -316,7 +327,7 @@ function productMobileCard(product) {
     <p>Tồn tối thiểu: ${product.minStock} ${product.unit}</p>
     <p>Đơn giá: ${money(product.price)}</p>
     <span class="badge ${badgeClass(status)}">${status}</span>
-    <div class="action-row"><button class="small-btn delete" data-delete-product="${product.id}" data-product-code="${product.code}">Xóa</button></div>
+    <div class="action-row"><button class="small-btn" data-edit-product="${product.id}">Sửa</button><button class="small-btn delete" data-delete-product="${product.id}" data-product-code="${product.code}">Xóa</button></div>
   </article>`;
 }
 
@@ -369,9 +380,40 @@ function renderCategories() {
           <span class="badge">${formatDate(category.created_at) || "Chưa rõ"}</span>
         </div>
       </div>
-      <button class="small-btn delete" data-delete-category="${category.id}">Xóa</button>
+      <div class="action-row">
+        <button class="small-btn" data-edit-category="${category.id}">Sửa</button>
+        <button class="small-btn delete" data-delete-category="${category.id}">Xóa</button>
+      </div>
     </div>`;
   }).join("");
+}
+
+function renderUnits() {
+  const list = $("#unitList");
+  if (!list) return;
+
+  const unitCount = $("#unitCount");
+  const unitCountLabel = $("#unitCountLabel");
+  if (unitCount) unitCount.textContent = `${units.length} đơn vị`;
+  if (unitCountLabel) unitCountLabel.textContent = units.length;
+
+  if (!units.length) {
+    list.innerHTML = `<div class="unit-empty">Chưa có đơn vị tính.</div>`;
+    return;
+  }
+
+  list.innerHTML = units.map(unit => `
+    <div class="unit-row">
+      <div class="unit-row-main">
+        <strong>${unit.name}</strong>
+        <span>${unit.symbol || "Chưa có ký hiệu"}</span>
+      </div>
+      <div class="action-row unit-row-actions">
+        <button class="small-btn" data-edit-unit="${unit.id}">Sửa</button>
+        <button class="small-btn delete" data-delete-unit="${unit.id}">Xóa</button>
+      </div>
+    </div>
+  `).join("");
 }
 
 function renderTransactions() {
@@ -428,6 +470,8 @@ function transactionMobileCard(item) {
 }
 
 function renderUsers() {
+  if (Number(currentAdmin?.role_id) !== 1) return;
+
   const filtered = users.filter(user => {
     const keyword = lower(textValue("userSearch"));
     const role = textValue("userRoleFilter") || "all";
@@ -453,33 +497,38 @@ function renderUsers() {
 }
 
 function userTableRow(user) {
+  const locked = ["locked", "blocked", "deleted"].includes(user.statusRaw);
   return `<tr>
     <td><b>${user.name}</b></td>
     <td>${user.email}</td>
     <td>${user.phone}</td>
     <td>${user.createdAt}</td>
-    <td><span class="badge info">${user.role}</span></td>
+    <td>
+      <select data-user-role="${user.id}">
+        <option value="2" ${user.roleId === 2 ? "selected" : ""}>User</option>
+        <option value="3" ${user.roleId === 3 ? "selected" : ""}>Quản lý</option>
+        <option value="1" ${user.roleId === 1 ? "selected" : ""}>Admin</option>
+      </select>
+    </td>
     <td><span class="badge ${badgeClass(user.status)}">${user.status}</span></td>
-    <td><div class="action-row"><button class="small-btn delete" data-delete-user="${user.email}">Xóa</button></div></td>
+    <td><div class="action-row"><button class="small-btn" data-toggle-user-status="${user.id}" data-next-status="${locked ? "active" : "locked"}">${locked ? "Mở khóa" : "Khóa"}</button><button class="small-btn delete" data-delete-user="${user.email}">Xóa</button></div></td>
   </tr>`;
 }
 
 function userMobileCard(user) {
+  const locked = ["locked", "blocked", "deleted"].includes(user.statusRaw);
   return `<article class="mobile-card">
     <h3>${user.name}</h3>
     <p>${user.email}</p>
     <p>${user.phone} • ${user.createdAt}</p>
     <span class="badge info">${user.role}</span>
     <span class="badge ${badgeClass(user.status)}">${user.status}</span>
-    <div class="action-row"><button class="small-btn delete" data-delete-user="${user.email}">Xóa</button></div>
+    <div class="action-row"><button class="small-btn" data-toggle-user-status="${user.id}" data-next-status="${locked ? "active" : "locked"}">${locked ? "Mở khóa" : "Khóa"}</button><button class="small-btn delete" data-delete-user="${user.email}">Xóa</button></div>
   </article>`;
 }
 
 function initNavigation() {
-  $("#sidebarToggle")?.addEventListener("click", () => {
-    $("#adminSidebar")?.classList.add("open");
-    $("#sidebarBackdrop")?.classList.add("show");
-  });
+  $("#sidebarToggle")?.addEventListener("click", openSidebar);
   $("#sidebarBackdrop")?.addEventListener("click", closeSidebar);
   $("#collapseBtn")?.addEventListener("click", toggleSidebar);
 
@@ -487,6 +536,12 @@ function initNavigation() {
     const menu = event.target.closest("[data-section], [data-section-jump]");
     if (menu) switchSection(menu.dataset.section || menu.dataset.sectionJump);
   });
+}
+
+function openSidebar() {
+  $("#adminSidebar")?.classList.add("open");
+  $("#sidebarBackdrop")?.classList.add("show");
+  document.body.classList.add("admin-sidebar-open");
 }
 
 function toggleSidebar() {
@@ -510,6 +565,7 @@ function switchSection(section) {
 function closeSidebar() {
   $("#adminSidebar")?.classList.remove("open");
   $("#sidebarBackdrop")?.classList.remove("show");
+  document.body.classList.remove("admin-sidebar-open");
 }
 
 function initForms() {
@@ -518,14 +574,18 @@ function initForms() {
   });
 
   $("#addProductForm")?.addEventListener("submit", submitProduct);
+  $("#addProductForm")?.addEventListener("reset", () => setTimeout(resetProductForm, 0));
   $("#categoryForm")?.addEventListener("submit", submitCategory);
+  $("#categoryForm")?.addEventListener("reset", () => setTimeout(resetCategoryForm, 0));
+  $("#unitForm")?.addEventListener("submit", submitUnit);
+  $("#unitForm")?.addEventListener("reset", () => setTimeout(resetUnitForm, 0));
   $("#importForm")?.addEventListener("submit", event => submitStock(event, "import"));
   $("#exportForm")?.addEventListener("submit", event => submitStock(event, "export"));
   $("#importForm")?.addEventListener("change", event => updateStockInfo(event.currentTarget));
   $("#exportForm")?.addEventListener("change", event => updateStockInfo(event.currentTarget));
   $("#websiteForm")?.addEventListener("submit", event => {
     event.preventDefault();
-    toast("Lưu cấu hình website thành công.", "success");
+    submitSiteSettings(event.currentTarget);
   });
 
   ["iconInput", "logoInput"].forEach(id => $(`#${id}`)?.addEventListener("input", renderIdentityPreview));
@@ -535,6 +595,7 @@ function initForms() {
 async function submitProduct(event) {
   event.preventDefault();
   const form = event.currentTarget;
+  const editId = form.dataset.editProductId;
   const product = {
     code: form.code.value.trim(),
     name: form.name.value.trim(),
@@ -551,28 +612,132 @@ async function submitProduct(event) {
     return toast("Vui lòng nhập đúng thông tin sản phẩm.", "error");
   }
   if (products.some(item => item.code === product.code)) {
-    return toast("Mã sản phẩm đã tồn tại.", "error");
+    if (!editId || products.some(item => item.code === product.code && String(item.id) !== String(editId))) {
+      return toast("Mã sản phẩm đã tồn tại.", "error");
+    }
   }
 
-  const saved = await saveAndRefresh(api.post("/view/products", product), "Thêm hàng hóa thành công.", form);
+  const request = editId
+    ? api.put(`/view/products/${editId}`, product)
+    : api.post("/view/products", product);
+  const successMessage = editId ? "Cập nhật hàng hóa thành công." : "Thêm hàng hóa thành công.";
+  const saved = await saveAndRefresh(request, successMessage, form);
   if (!saved) return;
 
+  resetProductForm();
   $("#imagePreview").src = DEFAULT_PREVIEW_IMAGE;
   switchSection("products");
+}
+
+function resetProductForm() {
+  const form = $("#addProductForm");
+  if (!form) return;
+  delete form.dataset.editProductId;
+  const button = $("button[type='submit']", form);
+  if (button) button.textContent = "Thêm hàng hóa";
+}
+
+function editProduct(productId) {
+  const product = products.find(item => sameId(item.id, productId));
+  const form = $("#addProductForm");
+  if (!product || !form) return;
+
+  form.dataset.editProductId = product.id;
+  form.code.value = product.code || "";
+  form.name.value = product.name || "";
+  form.category.value = product.categoryId || "";
+  form.unit.value = product.unitId || "";
+  form.quantity.value = product.quantity || 0;
+  form.minStock.value = product.minStock || 0;
+  form.price.value = product.price || 0;
+  form.image.value = product.image || "";
+  form.description.value = product.description || "";
+  $("#imagePreview").src = product.image || DEFAULT_PREVIEW_IMAGE;
+  const button = $("button[type='submit']", form);
+  if (button) button.textContent = "Cập nhật hàng hóa";
+  switchSection("inventory-actions");
 }
 
 async function submitCategory(event) {
   event.preventDefault();
   const form = event.currentTarget;
+  const editId = form.dataset.editCategoryId;
   const name = form.name.value.trim();
 
   if (!name) return toast("Tên nhóm hàng không được trống.", "error");
-  if (categories.some(item => lower(item.name) === lower(name))) return toast("Nhóm hàng đã tồn tại.", "error");
+  if (categories.some(item => lower(item.name) === lower(name) && String(item.id) !== String(editId || ""))) {
+    return toast("Nhóm hàng đã tồn tại.", "error");
+  }
 
-  await saveAndRefresh(api.post("/view/categories", {
-    name,
-    description: form.description.value.trim() || "Chưa có mô tả"
-  }), "Thêm nhóm hàng thành công.", form);
+  const request = editId
+    ? api.put(`/view/categories/${editId}`, { name, description: form.description.value.trim() || "Chưa có mô tả" })
+    : api.post("/view/categories", { name, description: form.description.value.trim() || "Chưa có mô tả" });
+  const saved = await saveAndRefresh(request, editId ? "Cập nhật nhóm hàng thành công." : "Thêm nhóm hàng thành công.", form);
+  if (saved) resetCategoryForm();
+}
+
+function resetCategoryForm() {
+  const form = $("#categoryForm");
+  if (!form) return;
+  delete form.dataset.editCategoryId;
+  const button = $("button[type='submit']", form);
+  if (button) button.textContent = "Thêm nhóm hàng";
+}
+
+function editCategory(categoryId) {
+  const category = categories.find(item => sameId(item.id, categoryId));
+  const form = $("#categoryForm");
+  if (!category || !form) return;
+
+  form.dataset.editCategoryId = category.id;
+  form.name.value = category.name || "";
+  form.description.value = category.description || "";
+  const button = $("button[type='submit']", form);
+  if (button) button.textContent = "Cập nhật nhóm hàng";
+  switchSection("categories");
+}
+
+async function submitUnit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const editId = form.dataset.editUnitId;
+  const unit = {
+    name: form.name.value.trim(),
+    symbol: form.symbol.value.trim() || null
+  };
+
+  if (!unit.name) return toast("Tên đơn vị không được trống.", "error");
+  if (units.some(item => lower(item.name) === lower(unit.name) && String(item.id) !== String(editId || ""))) {
+    return toast("Đơn vị đã tồn tại.", "error");
+  }
+
+  const request = editId
+    ? api.put(`/view/units/${editId}`, unit)
+    : api.post("/view/units", unit);
+  const saved = await saveAndRefresh(request, editId ? "Cập nhật đơn vị thành công." : "Thêm đơn vị thành công.", form);
+  if (saved) resetUnitForm();
+}
+
+function resetUnitForm() {
+  const form = $("#unitForm");
+  if (!form) return;
+  delete form.dataset.editUnitId;
+  const button = $("button[type='submit']", form);
+  if (button) button.textContent = "Thêm đơn vị";
+}
+
+function editUnit(unitId) {
+  const unit = units.find(item => sameId(item.id, unitId));
+  const form = $("#unitForm");
+  if (!unit || !form) return;
+
+  $("#unitDropdown")?.setAttribute("open", "");
+  form.dataset.editUnitId = unit.id;
+  form.name.value = unit.name || "";
+  form.symbol.value = unit.symbol || "";
+  const button = $("button[type='submit']", form);
+  if (button) button.textContent = "Cập nhật đơn vị";
+  switchSection("categories");
 }
 
 async function submitStock(event, type) {
@@ -616,6 +781,31 @@ function renderIdentityPreview() {
   if ($("#logoPreview") && $("#logoInput")) $("#logoPreview").src = $("#logoInput").value;
 }
 
+function applySiteSettings(settings) {
+  const form = $("#websiteForm");
+  if (!form || !settings) return;
+
+  if (settings.siteName) form.siteName.value = settings.siteName;
+  if (settings.icon) form.icon.value = settings.icon;
+  if (settings.logo) form.logo.value = settings.logo;
+  if (settings.color) form.color.value = settings.color;
+  if (settings.desc) form.desc.value = settings.desc;
+  renderIdentityPreview();
+}
+
+async function submitSiteSettings(form) {
+  const payload = {
+    siteName: form.siteName.value.trim(),
+    icon: form.icon.value.trim(),
+    logo: form.logo.value.trim(),
+    color: form.color.value,
+    desc: form.desc.value.trim()
+  };
+  const result = await api.put("/view/settings", payload);
+  if (!result.success) return toast(result.message || "Không thể lưu cấu hình website.", "error");
+  toast("Lưu cấu hình website thành công.", "success");
+}
+
 function initFilters() {
   ["productSearch", "categoryFilter", "statusFilter"].forEach(id => $(`#${id}`)?.addEventListener("input", renderProducts));
   ["transactionSearch", "transactionTypeFilter", "transactionDateFilter"].forEach(id => $(`#${id}`)?.addEventListener("input", renderTransactions));
@@ -638,12 +828,31 @@ function initFilters() {
 
 function initActions() {
   document.addEventListener("click", event => {
-    const button = event.target.closest("[data-delete-product], [data-delete-category], [data-delete-user]");
+    const editProductButton = event.target.closest("[data-edit-product]");
+    if (editProductButton) return editProduct(editProductButton.dataset.editProduct);
+
+    const editCategoryButton = event.target.closest("[data-edit-category]");
+    if (editCategoryButton) return editCategory(editCategoryButton.dataset.editCategory);
+
+    const editUnitButton = event.target.closest("[data-edit-unit]");
+    if (editUnitButton) return editUnit(editUnitButton.dataset.editUnit);
+
+    const toggleStatusButton = event.target.closest("[data-toggle-user-status]");
+    if (toggleStatusButton) return updateUserStatus(toggleStatusButton.dataset.toggleUserStatus, toggleStatusButton.dataset.nextStatus);
+
+    const button = event.target.closest("[data-delete-product], [data-delete-category], [data-delete-unit], [data-delete-user]");
     if (!button) return;
 
     if (button.dataset.deleteProduct) return confirmDeleteProduct(button);
     if (button.dataset.deleteCategory) return confirmDeleteCategory(button.dataset.deleteCategory);
+    if (button.dataset.deleteUnit) return confirmDeleteUnit(button.dataset.deleteUnit);
     if (button.dataset.deleteUser) return confirmDeleteUser(button.dataset.deleteUser);
+  });
+
+  document.addEventListener("change", event => {
+    const select = event.target.closest("[data-user-role]");
+    if (!select) return;
+    updateUserRole(select.dataset.userRole, Number(select.value));
   });
 
   $("#logoutBtn")?.addEventListener("click", confirmLogout);
@@ -668,10 +877,36 @@ function confirmDeleteCategory(categoryId) {
   });
 }
 
+function confirmDeleteUnit(unitId) {
+  const unit = units.find(item => String(item.id) === String(unitId));
+  if (!unit) return;
+  if (products.some(product => sameId(product.unitId, unitId))) {
+    return toast("Không thể xóa đơn vị đang được sử dụng.", "error");
+  }
+
+  openModal("Xóa đơn vị?", `Bạn có chắc muốn xóa đơn vị ${unit.name}?`, async () => {
+    await deleteAndRefresh(api.del(`/view/units/${unitId}`), "Đã xóa đơn vị.");
+  });
+}
+
 function confirmDeleteUser(email) {
   openModal("Xóa tài khoản?", `Nên ưu tiên khóa tài khoản thay vì xóa. Bạn vẫn muốn xóa ${email}?`, async () => {
     await deleteAndRefresh(api.del(`/view/users/${encodeURIComponent(email)}`), "Đã xóa tài khoản.");
   });
+}
+
+async function updateUserRole(userId, roleId) {
+  const result = await api.patch(`/view/users/${userId}`, { role_id: roleId });
+  if (!result.success) return toast(result.message || "Không thể đổi quyền tài khoản.", "error");
+  await refresh();
+  toast("Đã cập nhật quyền tài khoản.", "success");
+}
+
+async function updateUserStatus(userId, status) {
+  const result = await api.patch(`/view/users/${userId}`, { status });
+  if (!result.success) return toast(result.message || "Không thể cập nhật trạng thái tài khoản.", "error");
+  await refresh();
+  toast(status === "active" ? "Đã mở khóa tài khoản." : "Đã khóa tài khoản.", "success");
 }
 
 async function deleteAndRefresh(promise, successMessage) {
@@ -755,6 +990,7 @@ async function loadAdminProfile() {
   if (!result.success || !result.data) return window.location.assign("/login");
 
   const user = result.data;
+  currentAdmin = user;
   const roleId = Number(user.role_id);
   if (roleId !== 1 && roleId !== 3) return window.location.assign("/profile");
 
@@ -773,8 +1009,8 @@ async function init() {
   initActions();
   initModal();
   initPagination();
-  await refresh();
   await loadAdminProfile();
+  await refresh();
   switchSection("overview");
 }
 
